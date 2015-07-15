@@ -5,15 +5,16 @@ type Queue struct {
 	// The Jobs currently in the queue
 	Jobs []*Job
 
-	// cbBeforeAppend holds the callbacks to run immediately before appending to
-	// the queue.
+	// Callback lists
 	cbBeforeAppend []func(q *Queue, j *Job)
+	cbAfterAppend  []func(q *Queue, j *Job)
 }
 
 // Append adds a Job to the tail of the queue.
 func (q *Queue) Append(j *Job) {
 	q.beforeAppend(j)
 	q.Jobs = append(q.Jobs, j)
+	q.afterAppend(j)
 }
 
 // Shift removes a Job from the head of the queue.
@@ -46,6 +47,20 @@ func (q *Queue) OnBeforeAppend(f func(q *Queue, j *Job)) {
 }
 func (q *Queue) beforeAppend(j *Job) {
 	for _, cb := range q.cbBeforeAppend {
+		cb(q, j)
+	}
+}
+
+// OnAfterAppend adds a callback to be run immediately after a Job is
+// appended to the queue.
+//
+// The callback will be passed the queue itself and the job that was just
+// appended.
+func (q *Queue) OnAfterAppend(f func(q *Queue, j *Job)) {
+	q.cbAfterAppend = append(q.cbAfterAppend, f)
+}
+func (q *Queue) afterAppend(j *Job) {
+	for _, cb := range q.cbAfterAppend {
 		cb(q, j)
 	}
 }

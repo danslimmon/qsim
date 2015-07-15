@@ -113,3 +113,43 @@ func TestOnBeforeAppend(t *testing.T) {
 		t.Fail()
 	}
 }
+
+// Tests the AfterAppend callback.
+func TestOnAfterAppend(t *testing.T) {
+	t.Parallel()
+	var q *Queue
+	var j *Job
+	q = NewQueue()
+
+	var counter string
+	var qLen int
+	cb := func(q *Queue, j *Job) {
+		counter = j.Attrs["i"]
+		qLen = len(q.Jobs)
+	}
+	q.OnAfterAppend(cb)
+
+	j = NewJob()
+	j.Attrs["i"] = "0"
+	q.Append(j)
+	if counter != "0" {
+		t.Log("Expected AfterAppend callback to set counter=0")
+		t.Fail()
+	}
+	if qLen != 1 {
+		t.Log("Expected AfterAppend callback to set qLen=1")
+		t.Fail()
+	}
+
+	j = NewJob()
+	j.Attrs["i"] = "1"
+	q.Append(j)
+	if counter != "1" {
+		t.Log("Expected AfterAppend callback to set counter=1")
+		t.Fail()
+	}
+	if qLen != 2 {
+		t.Log("Expected AfterAppend callback to set qLen=2")
+		t.Fail()
+	}
+}
