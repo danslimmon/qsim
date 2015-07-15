@@ -26,6 +26,7 @@ func TestProcessorStart(t *testing.T) {
 	}
 	if err != nil {
 		t.Log("Got unexpected error from proc.Start:", err)
+		t.Fail()
 	}
 
 	// Make sure we get an error if we try to start a job while the
@@ -47,5 +48,6 @@ func TestProcessorStart(t *testing.T) {
 	}
 	if err != nil {
 		t.Log("Got unexpected error from proc.Start:", err)
+		t.Fail()
 	}
 }
