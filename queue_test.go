@@ -75,7 +75,7 @@ func TestQueueShift(t *testing.T) {
 }
 
 // Tests the BeforeAppend callback.
-func TestQueueOnBeforeAppend(t *testing.T) {
+func TestQueueBeforeAppend(t *testing.T) {
 	t.Parallel()
 	var q *Queue
 	var j *Job
@@ -87,7 +87,7 @@ func TestQueueOnBeforeAppend(t *testing.T) {
 		counter = j.Attrs["i"]
 		qLen = len(q.Jobs)
 	}
-	q.OnBeforeAppend(cb)
+	q.BeforeAppend(cb)
 
 	j = NewJob()
 	j.Attrs["i"] = "0"
@@ -115,7 +115,7 @@ func TestQueueOnBeforeAppend(t *testing.T) {
 }
 
 // Tests the AfterAppend callback.
-func TestQueueOnAfterAppend(t *testing.T) {
+func TestQueueAfterAppend(t *testing.T) {
 	t.Parallel()
 	var q *Queue
 	var j *Job
@@ -127,7 +127,7 @@ func TestQueueOnAfterAppend(t *testing.T) {
 		counter = j.Attrs["i"]
 		qLen = len(q.Jobs)
 	}
-	q.OnAfterAppend(cb)
+	q.AfterAppend(cb)
 
 	j = NewJob()
 	j.Attrs["i"] = "0"
@@ -155,7 +155,7 @@ func TestQueueOnAfterAppend(t *testing.T) {
 }
 
 // Tests the BeforeShift callback.
-func TestQueueOnBeforeShift(t *testing.T) {
+func TestQueueBeforeShift(t *testing.T) {
 	t.Parallel()
 	var q *Queue
 	var j *Job
@@ -171,7 +171,7 @@ func TestQueueOnBeforeShift(t *testing.T) {
 		}
 		qLen = len(q.Jobs)
 	}
-	q.OnBeforeShift(cb)
+	q.BeforeShift(cb)
 
 	j = NewJob()
 	j.Attrs["i"] = "0"
@@ -212,7 +212,7 @@ func TestQueueOnBeforeShift(t *testing.T) {
 }
 
 // Tests the AfterShift callback.
-func TestQueueOnAfterShift(t *testing.T) {
+func TestQueueAfterShift(t *testing.T) {
 	t.Parallel()
 	var q *Queue
 	var j *Job
@@ -228,7 +228,7 @@ func TestQueueOnAfterShift(t *testing.T) {
 		}
 		qLen = len(q.Jobs)
 	}
-	q.OnAfterShift(cb)
+	q.AfterShift(cb)
 
 	j = NewJob()
 	j.Attrs["i"] = "0"

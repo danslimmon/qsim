@@ -43,12 +43,12 @@ func (q *Queue) Shift() (j *Job, nrem int) {
 	return j, len(q.Jobs)
 }
 
-// OnBeforeAppend adds a callback to be run immediately before a Job is
+// BeforeAppend adds a callback to be run immediately before a Job is
 // appended to the queue.
 //
 // The callback will be passed the queue itself and the job that's about
 // to be appended.
-func (q *Queue) OnBeforeAppend(f func(q *Queue, j *Job)) {
+func (q *Queue) BeforeAppend(f func(q *Queue, j *Job)) {
 	q.cbBeforeAppend = append(q.cbBeforeAppend, f)
 }
 func (q *Queue) beforeAppend(j *Job) {
@@ -57,12 +57,12 @@ func (q *Queue) beforeAppend(j *Job) {
 	}
 }
 
-// OnAfterAppend adds a callback to be run immediately after a Job is
+// AfterAppend adds a callback to be run immediately after a Job is
 // appended to the queue.
 //
 // The callback will be passed the queue itself and the job that was just
 // appended.
-func (q *Queue) OnAfterAppend(f func(q *Queue, j *Job)) {
+func (q *Queue) AfterAppend(f func(q *Queue, j *Job)) {
 	q.cbAfterAppend = append(q.cbAfterAppend, f)
 }
 func (q *Queue) afterAppend(j *Job) {
@@ -71,13 +71,13 @@ func (q *Queue) afterAppend(j *Job) {
 	}
 }
 
-// OnBeforeShift adds a callback to be run immediately before a Job is
+// BeforeShift adds a callback to be run immediately before a Job is
 // shifted out of the queue.
 //
 // The callback will be passed the queue itself and the job that's about
 // to be shifted. If Shift is called on an empty queue, this callback
 // will run but j will be nil.
-func (q *Queue) OnBeforeShift(f func(q *Queue, j *Job)) {
+func (q *Queue) BeforeShift(f func(q *Queue, j *Job)) {
 	q.cbBeforeShift = append(q.cbBeforeShift, f)
 }
 func (q *Queue) beforeShift(j *Job) {
@@ -86,13 +86,13 @@ func (q *Queue) beforeShift(j *Job) {
 	}
 }
 
-// OnAfterShift adds a callback to be run immediately after a Job is
+// AfterShift adds a callback to be run immediately after a Job is
 // shifted out of the queue.
 //
 // The callback will be passed the queue itself and the job that was
 // just shifted. If Shift is called on an empty queue, this callback
 // will run but j will be nil.
-func (q *Queue) OnAfterShift(f func(q *Queue, j *Job)) {
+func (q *Queue) AfterShift(f func(q *Queue, j *Job)) {
 	q.cbAfterShift = append(q.cbAfterShift, f)
 }
 func (q *Queue) afterShift(j *Job) {
