@@ -30,3 +30,46 @@ func TestQueueAppend(t *testing.T) {
 		t.Fail()
 	}
 }
+
+// Tests the behavior of shifting items out of the queue.
+func TestQueueShift(t *testing.T) {
+	t.Parallel()
+	var q *Queue
+	var j0, j1, j *Job
+	var nrem int
+	q = NewQueue()
+
+	j0 = NewJob()
+	j0.Attrs["i"] = "0"
+	q.Append(j0)
+
+	j1 = NewJob()
+	j1.Attrs["i"] = "1"
+	q.Append(j1)
+
+	j, nrem = q.Shift()
+	if j.Attrs["i"] != "0" {
+		t.Log("Zeroeth element was not the first to be shifted")
+		t.Fail()
+	}
+	if nrem != 1 {
+		t.Log("Expected the remaining number of queued jobs to equal 1")
+		t.Fail()
+	}
+
+	j, nrem = q.Shift()
+	if j.Attrs["i"] != "1" {
+		t.Log("Last element was not the last to be shifted")
+		t.Fail()
+	}
+	if nrem != 0 {
+		t.Log("Expected the remaining number of queued jobs to equal 0")
+		t.Fail()
+	}
+
+	j, nrem = q.Shift()
+	if j != nil {
+		t.Log("Calling Shift on an empty queue should return j = nil")
+		t.Fail()
+	}
+}
