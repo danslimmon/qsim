@@ -27,7 +27,7 @@ func (q *Queue) Append(j *Job) {
 // this:
 //
 //  j, nrem := q.Shift()
-//	if j != nil {
+//  if j != nil {
 //    // Do something with j
 //  }
 func (q *Queue) Shift() (j *Job, nrem int) {
