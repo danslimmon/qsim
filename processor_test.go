@@ -4,6 +4,11 @@ import (
 	"testing"
 )
 
+// A simple ProcTimeGenerator function that returns a constant
+func simplePtg(j *Job) int {
+	return 293
+}
+
 // Tests the starting of a job
 func TestProcessorStart(t *testing.T) {
 	var proc *Processor
@@ -11,12 +16,8 @@ func TestProcessorStart(t *testing.T) {
 	var procTime int
 	var err error
 
-	ptg := func(j *Job) int {
-		return 293
-	}
-
 	proc = NewProcessor()
-	proc.SetProcTimeGenerator(ptg)
+	proc.SetProcTimeGenerator(simplePtg)
 	j0 = NewJob()
 
 	procTime, err = proc.Start(j0)
@@ -48,6 +49,26 @@ func TestProcessorStart(t *testing.T) {
 	}
 	if err != nil {
 		t.Log("Got unexpected error from proc.Start:", err)
+		t.Fail()
+	}
+}
+
+// Tests the finishing of a job
+func TestProcessorFinish(t *testing.T) {
+	var proc *Processor
+	var j *Job
+
+	proc = NewProcessor()
+	proc.SetProcTimeGenerator(simplePtg)
+	j = NewJob()
+	proc.Start(j)
+	if j != proc.Finish() {
+		t.Log("Expected to get back from proc.Finish the job that was processing")
+		t.Fail()
+	}
+
+	if nil != proc.Finish() {
+		t.Log("proc.Finish on an idle job didn't return nil as expected")
 		t.Fail()
 	}
 }
