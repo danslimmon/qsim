@@ -9,6 +9,7 @@ type Queue struct {
 	cbBeforeAppend []func(q *Queue, j *Job)
 	cbAfterAppend  []func(q *Queue, j *Job)
 	cbBeforeShift  []func(q *Queue, j *Job)
+	cbAfterShift   []func(q *Queue, j *Job)
 }
 
 // Append adds a Job to the tail of the queue.
@@ -27,16 +28,18 @@ func (q *Queue) Append(j *Job) {
 //
 //  j, nrem := q.Shift()
 //	if j != nil {
-//		// Do something with j
+//	    // Do something with j
 //  }
 func (q *Queue) Shift() (j *Job, nrem int) {
 	if len(q.Jobs) == 0 {
 		q.beforeShift(nil)
+		q.afterShift(nil)
 		return nil, 0
 	}
 	j = q.Jobs[0]
 	q.beforeShift(j)
 	q.Jobs = q.Jobs[1:]
+	q.afterShift(j)
 	return j, len(q.Jobs)
 }
 
@@ -79,6 +82,21 @@ func (q *Queue) OnBeforeShift(f func(q *Queue, j *Job)) {
 }
 func (q *Queue) beforeShift(j *Job) {
 	for _, cb := range q.cbBeforeShift {
+		cb(q, j)
+	}
+}
+
+// OnAfterShift adds a callback to be run immediately after a Job is
+// shifted out of the queue.
+//
+// The callback will be passed the queue itself and the job that was
+// just shifted. If Shift is called on an empty queue, this callback
+// will run but j will be nil.
+func (q *Queue) OnAfterShift(f func(q *Queue, j *Job)) {
+	q.cbAfterShift = append(q.cbAfterShift, f)
+}
+func (q *Queue) afterShift(j *Job) {
+	for _, cb := range q.cbAfterShift {
 		cb(q, j)
 	}
 }

@@ -182,7 +182,7 @@ func TestOnBeforeShift(t *testing.T) {
 
 	q.Shift()
 	if counter != "0" {
-		t.Log("Expected BeforeShift callback to set counter=1")
+		t.Log("Expected BeforeShift callback to set counter=0")
 		t.Fail()
 	}
 	if qLen != 2 {
@@ -207,6 +207,63 @@ func TestOnBeforeShift(t *testing.T) {
 	}
 	if qLen != 0 {
 		t.Log("Expected BeforeShift callback to set qLen=0")
+		t.Fail()
+	}
+}
+
+// Tests the AfterShift callback.
+func TestOnAfterShift(t *testing.T) {
+	t.Parallel()
+	var q *Queue
+	var j *Job
+	q = NewQueue()
+
+	var counter string
+	var qLen int
+	cb := func(q *Queue, j *Job) {
+		if j != nil {
+			counter = j.Attrs["i"]
+		} else {
+			counter = "queue_was_empty"
+		}
+		qLen = len(q.Jobs)
+	}
+	q.OnAfterShift(cb)
+
+	j = NewJob()
+	j.Attrs["i"] = "0"
+	q.Append(j)
+	j = NewJob()
+	j.Attrs["i"] = "1"
+	q.Append(j)
+
+	q.Shift()
+	if counter != "0" {
+		t.Log("Expected AfterShift callback to set counter=0")
+		t.Fail()
+	}
+	if qLen != 1 {
+		t.Log("Expected AfterShift callback to set qLen=1")
+		t.Fail()
+	}
+
+	q.Shift()
+	if counter != "1" {
+		t.Log("Expected AfterShift callback to set counter=1")
+		t.Fail()
+	}
+	if qLen != 0 {
+		t.Log("Expected AfterShift callback to set qLen=0")
+		t.Fail()
+	}
+
+	q.Shift()
+	if counter != "queue_was_empty" {
+		t.Log("Expected AfterShift callback to set counter=queue_was_empty")
+		t.Fail()
+	}
+	if qLen != 0 {
+		t.Log("Expected AfterShift callback to set qLen=0")
 		t.Fail()
 	}
 }
