@@ -11,6 +11,7 @@ func simplePtg(j *Job) int {
 
 // Tests the starting of a job
 func TestProcessorStart(t *testing.T) {
+	t.Parallel()
 	var proc *Processor
 	var j0, j1 *Job
 	var procTime int
@@ -18,7 +19,7 @@ func TestProcessorStart(t *testing.T) {
 
 	proc = NewProcessor()
 	proc.SetProcTimeGenerator(simplePtg)
-	j0 = NewJob()
+	j0 = NewJob(false)
 
 	procTime, err = proc.Start(j0)
 	if procTime != 293 {
@@ -32,7 +33,7 @@ func TestProcessorStart(t *testing.T) {
 
 	// Make sure we get an error if we try to start a job while the
 	// processor is busy.
-	j1 = NewJob()
+	j1 = NewJob(false)
 	procTime, err = proc.Start(j1)
 	if err == nil {
 		t.Log("Expected 'job already in progress error', got no error")
@@ -55,12 +56,13 @@ func TestProcessorStart(t *testing.T) {
 
 // Tests the finishing of a job
 func TestProcessorFinish(t *testing.T) {
+	t.Parallel()
 	var proc *Processor
 	var j *Job
 
 	proc = NewProcessor()
 	proc.SetProcTimeGenerator(simplePtg)
-	j = NewJob()
+	j = NewJob(false)
 	proc.Start(j)
 	if j != proc.Finish() {
 		t.Log("Expected to get back from proc.Finish the job that was processing")
@@ -75,12 +77,13 @@ func TestProcessorFinish(t *testing.T) {
 
 // Tests the BeforeStart callback
 func TestBeforeStart(t *testing.T) {
+	t.Parallel()
 	var proc, receivedProc *Processor
 	var j0, j1, receivedJob *Job
 
 	proc = NewProcessor()
 	proc.SetProcTimeGenerator(simplePtg)
-	j0 = NewJob()
+	j0 = NewJob(false)
 
 	cbBeforeStart := func(cbProc *Processor, cbJob *Job) {
 		receivedProc = cbProc
@@ -100,7 +103,7 @@ func TestBeforeStart(t *testing.T) {
 
 	// Make sure that, if Start is called on a busy Processor, the callback
 	// still runs.
-	j1 = NewJob()
+	j1 = NewJob(false)
 	proc.Start(j1)
 	if receivedProc != proc {
 		t.Log("BeforeStart callback called with wrong Processor")
@@ -114,13 +117,14 @@ func TestBeforeStart(t *testing.T) {
 
 // Tests the AfterStart callback
 func TestAfterStart(t *testing.T) {
+	t.Parallel()
 	var proc, receivedProc *Processor
 	var j0, j1, receivedJob *Job
 	var receivedProcTime int
 
 	proc = NewProcessor()
 	proc.SetProcTimeGenerator(simplePtg)
-	j0 = NewJob()
+	j0 = NewJob(false)
 
 	cbAfterStart := func(cbProc *Processor, cbJob *Job, cbProcTime int) {
 		receivedProc = cbProc
@@ -141,7 +145,7 @@ func TestAfterStart(t *testing.T) {
 
 	// Make sure that, if Start is called on a busy Processor, the callback
 	// still runs but returns nil.
-	j1 = NewJob()
+	j1 = NewJob(false)
 	proc.Start(j1)
 	if receivedProc != proc {
 		t.Log("AfterStart callback called with wrong Processor")
@@ -155,12 +159,13 @@ func TestAfterStart(t *testing.T) {
 
 // Tests the BeforeFinish callback
 func TestBeforeFinish(t *testing.T) {
+	t.Parallel()
 	var proc, receivedProc *Processor
 	var j, receivedJob *Job
 
 	proc = NewProcessor()
 	proc.SetProcTimeGenerator(simplePtg)
-	j = NewJob()
+	j = NewJob(false)
 	proc.Start(j)
 
 	cbBeforeFinish := func(cbProc *Processor, cbJob *Job) {
@@ -194,12 +199,13 @@ func TestBeforeFinish(t *testing.T) {
 
 // Tests the AfterFinish callback
 func TestAfterFinish(t *testing.T) {
+	t.Parallel()
 	var proc, receivedProc *Processor
 	var j, receivedJob *Job
 
 	proc = NewProcessor()
 	proc.SetProcTimeGenerator(simplePtg)
-	j = NewJob()
+	j = NewJob(false)
 	proc.Start(j)
 
 	cbAfterFinish := func(cbProc *Processor, cbJob *Job) {

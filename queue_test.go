@@ -13,7 +13,7 @@ func TestQueueAppend(t *testing.T) {
 	q = NewQueue()
 
 	for i := 0; i < 20; i++ {
-		j = NewJob()
+		j = NewJob(false)
 		j.Attrs["i"] = fmt.Sprintf("%d", i)
 		q.Append(j)
 	}
@@ -39,11 +39,11 @@ func TestQueueShift(t *testing.T) {
 	var nrem int
 	q = NewQueue()
 
-	j0 = NewJob()
+	j0 = NewJob(false)
 	j0.Attrs["i"] = "0"
 	q.Append(j0)
 
-	j1 = NewJob()
+	j1 = NewJob(false)
 	j1.Attrs["i"] = "1"
 	q.Append(j1)
 
@@ -89,7 +89,7 @@ func TestQueueBeforeAppend(t *testing.T) {
 	}
 	q.BeforeAppend(cb)
 
-	j = NewJob()
+	j = NewJob(false)
 	j.Attrs["i"] = "0"
 	q.Append(j)
 	if counter != "0" {
@@ -101,7 +101,7 @@ func TestQueueBeforeAppend(t *testing.T) {
 		t.Fail()
 	}
 
-	j = NewJob()
+	j = NewJob(false)
 	j.Attrs["i"] = "1"
 	q.Append(j)
 	if counter != "1" {
@@ -129,7 +129,7 @@ func TestQueueAfterAppend(t *testing.T) {
 	}
 	q.AfterAppend(cb)
 
-	j = NewJob()
+	j = NewJob(false)
 	j.Attrs["i"] = "0"
 	q.Append(j)
 	if counter != "0" {
@@ -141,7 +141,7 @@ func TestQueueAfterAppend(t *testing.T) {
 		t.Fail()
 	}
 
-	j = NewJob()
+	j = NewJob(false)
 	j.Attrs["i"] = "1"
 	q.Append(j)
 	if counter != "1" {
@@ -173,10 +173,10 @@ func TestQueueBeforeShift(t *testing.T) {
 	}
 	q.BeforeShift(cb)
 
-	j = NewJob()
+	j = NewJob(false)
 	j.Attrs["i"] = "0"
 	q.Append(j)
-	j = NewJob()
+	j = NewJob(false)
 	j.Attrs["i"] = "1"
 	q.Append(j)
 
@@ -230,10 +230,10 @@ func TestQueueAfterShift(t *testing.T) {
 	}
 	q.AfterShift(cb)
 
-	j = NewJob()
+	j = NewJob(false)
 	j.Attrs["i"] = "0"
 	q.Append(j)
-	j = NewJob()
+	j = NewJob(false)
 	j.Attrs["i"] = "1"
 	q.Append(j)
 
