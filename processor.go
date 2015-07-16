@@ -42,10 +42,13 @@ func (p *Processor) SetProcTimeGenerator(ptg func(j *Job) int) {
 func (p *Processor) Start(j *Job) (procTime int, err error) {
 	p.beforeStart(j)
 	if p.CurrentJob != nil {
+		p.afterStart(nil, 0)
 		return 0, errors.New("Tried to start job on busy processor; call Finish() first")
 	}
 	p.CurrentJob = j
-	return p.procTimeGenerator(j), nil
+	procTime = p.procTimeGenerator(j)
+	p.afterStart(j, procTime)
+	return procTime, nil
 }
 
 // Finish empties the current job out of the Processor and returns it.

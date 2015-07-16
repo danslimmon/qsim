@@ -112,3 +112,44 @@ func TestBeforeStart(t *testing.T) {
 	}
 
 }
+
+// Tests the AfterStart callback
+func TestAfterStart(t *testing.T) {
+	var proc, receivedProc *Processor
+	var j0, j1, receivedJob *Job
+	var receivedProcTime int
+
+	proc = NewProcessor()
+	proc.SetProcTimeGenerator(simplePtg)
+	j0 = NewJob()
+
+	cbAfterStart := func(cbProc *Processor, cbJob *Job, cbProcTime int) {
+		receivedProc = cbProc
+		receivedJob = cbJob
+		receivedProcTime = cbProcTime
+	}
+	proc.AfterStart(cbAfterStart)
+
+	proc.Start(j0)
+	if receivedProc != proc {
+		t.Log("AfterStart callback called with wrong Processor")
+		t.Fail()
+	}
+	if receivedJob != j0 {
+		t.Log("AfterStart callback called with wrong Job")
+		t.Fail()
+	}
+
+	// Make sure that, if Start is called on a busy Processor, the callback
+	// still runs but returns nil.
+	j1 = NewJob()
+	proc.Start(j1)
+	if receivedProc != proc {
+		t.Log("AfterStart callback called with wrong Processor")
+		t.Fail()
+	}
+	if receivedJob != nil {
+		t.Log("AfterStart callback on a busy Processor didn't return job=nil")
+		t.Fail()
+	}
+}
