@@ -72,3 +72,43 @@ func TestProcessorFinish(t *testing.T) {
 		t.Fail()
 	}
 }
+
+// Tests the BeforeStart callback
+func TestBeforeStart(t *testing.T) {
+	var proc, receivedProc *Processor
+	var j0, j1, receivedJob *Job
+
+	proc = NewProcessor()
+	proc.SetProcTimeGenerator(simplePtg)
+	j0 = NewJob()
+
+	cbBeforeStart := func(cbProc *Processor, cbJob *Job) {
+		receivedProc = cbProc
+		receivedJob = cbJob
+	}
+	proc.BeforeStart(cbBeforeStart)
+
+	proc.Start(j0)
+	if receivedProc != proc {
+		t.Log("BeforeStart callback called with wrong Processor")
+		t.Fail()
+	}
+	if receivedJob != j0 {
+		t.Log("BeforeStart callback called with wrong Job")
+		t.Fail()
+	}
+
+	// Make sure that, if Start is called on a busy Processor, the callback
+	// still runs.
+	j1 = NewJob()
+	proc.Start(j1)
+	if receivedProc != proc {
+		t.Log("BeforeStart callback called with wrong Processor")
+		t.Fail()
+	}
+	if receivedJob != j1 {
+		t.Log("BeforeStart callback called with wrong Job")
+		t.Fail()
+	}
+
+}
