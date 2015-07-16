@@ -56,6 +56,7 @@ func (p *Processor) Start(j *Job) (procTime int, err error) {
 // If Finish is called on an idle processor, j will be nil.
 func (p *Processor) Finish() (j *Job) {
 	j = p.CurrentJob
+	p.beforeFinish(j)
 	p.CurrentJob = nil
 	return j
 }
@@ -89,6 +90,21 @@ func (p *Processor) AfterStart(f func(p *Processor, j *Job, procTime int)) {
 func (p *Processor) afterStart(j *Job, procTime int) {
 	for _, cb := range p.cbAfterStart {
 		cb(p, j, procTime)
+	}
+}
+
+// BeforeFinish adds a callback to be run immediately before a Job is finished
+// on the processor.
+//
+// The callback will be passed the processor itself and the job that's about
+// to be finished. If Finish is called on an idle Processor, the callback still
+// runs but j is nil.
+func (p *Processor) BeforeFinish(f func(p *Processor, j *Job)) {
+	p.cbBeforeFinish = append(p.cbBeforeFinish, f)
+}
+func (p *Processor) beforeFinish(j *Job) {
+	for _, cb := range p.cbBeforeFinish {
+		cb(p, j)
 	}
 }
 
