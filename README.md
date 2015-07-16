@@ -1,12 +1,12 @@
 # qsim
 
-{{qsim}} is a Go package that lets you build queueing system simulators.
+`qsim` is a Go package that lets you build queueing system simulators.
 
 The package provides some building blocks that you can customize and fit
 together to simulate all kinds of queueing systems, from a grocery store
 checkout line to a kanban board.
 
-A queueing **system** in {{qsim}} processes arbitrary **jobs** and is
+A queueing **system** in `qsim` processes arbitrary **jobs** and is
 composed of four pieces:
 
 * The **arrival process** controls how often jobs enter the system and
@@ -30,7 +30,7 @@ state into data.
 
 Suppose you want to model the queueing behavior at a small super market
 with 3 checkout lines. Here's the sort of queueing system you'd create
-with {{qsim}}:
+with `qsim`:
 
 * **Arrival Process**: The arrival process is simple. A new job
   ("shopper") enters the queueing system ("becomes ready for checkout")
