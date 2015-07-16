@@ -27,9 +27,9 @@ over a certain number of **ticks**. We can use **callbacks** to extract
 the current system state at any point in the simulation and turn that
 state into data.
 
-## An Example: Super market checkout line.
+## An example: supermarket checkout line.
 
-Suppose you want to model the queueing behavior at a small super market
+Suppose you want to model the queueing behavior at a small supermarket
 with 3 checkout lines. Here's the sort of queueing system you'd create
 with `qsim`:
 
