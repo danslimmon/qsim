@@ -10,10 +10,10 @@ type Processor struct {
 
 	procTimeGenerator func(j *Job) int
 	// Callback lists
-	cbBeforeStart  []func(q *Processor, j *Job)
-	cbAfterStart   []func(q *Processor, j *Job, procTime int)
-	cbBeforeFinish []func(q *Processor, j *Job)
-	cbAfterFinish  []func(q *Processor, j *Job)
+	cbBeforeStart  []func(p *Processor, j *Job)
+	cbAfterStart   []func(p *Processor, j *Job, procTime int)
+	cbBeforeFinish []func(p *Processor, j *Job)
+	cbAfterFinish  []func(p *Processor, j *Job)
 }
 
 // SetProcTimeGenerator sets the function that will generate processing
