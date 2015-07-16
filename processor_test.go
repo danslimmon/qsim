@@ -148,7 +148,7 @@ func TestAfterStart(t *testing.T) {
 		t.Fail()
 	}
 	if receivedJob != nil {
-		t.Log("AfterStart callback on a busy Processor didn't return job=nil")
+		t.Log("AfterStart callback on a busy Processor called with job != nil")
 		t.Fail()
 	}
 }
@@ -188,6 +188,45 @@ func TestBeforeFinish(t *testing.T) {
 	}
 	if receivedJob != nil {
 		t.Log("BeforeFinish on an idle Processor was called with job != nil")
+		t.Fail()
+	}
+}
+
+// Tests the AfterFinish callback
+func TestAfterFinish(t *testing.T) {
+	var proc, receivedProc *Processor
+	var j, receivedJob *Job
+
+	proc = NewProcessor()
+	proc.SetProcTimeGenerator(simplePtg)
+	j = NewJob()
+	proc.Start(j)
+
+	cbAfterFinish := func(cbProc *Processor, cbJob *Job) {
+		receivedProc = cbProc
+		receivedJob = cbJob
+	}
+	proc.AfterFinish(cbAfterFinish)
+
+	proc.Finish()
+	if receivedProc != proc {
+		t.Log("AfterFinish callback called with wrong Processor")
+		t.Fail()
+	}
+	if receivedJob != j {
+		t.Log("AfterFinish callback called with wrong Job")
+		t.Fail()
+	}
+
+	// Make sure that, if Finish is called on an idle Processor, the callback
+	// still runs but j=nil.
+	proc.Finish()
+	if receivedProc != proc {
+		t.Log("AfterFinish on idle Processor called with wrong Processor")
+		t.Fail()
+	}
+	if receivedJob != nil {
+		t.Log("AfterFinish on idle Processor called with job != nil")
 		t.Fail()
 	}
 }

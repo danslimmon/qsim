@@ -38,7 +38,7 @@ func (p *Processor) SetProcTimeGenerator(ptg func(j *Job) int) {
 //
 // The return value is the amount of time it'll take to process the job.
 // This method will throw an error if called when there's already a job
-// being processed: that job needs to be Finish()ed first.
+// being processed: that job needs to be finished first.
 func (p *Processor) Start(j *Job) (procTime int, err error) {
 	p.beforeStart(j)
 	if p.CurrentJob != nil {
@@ -58,6 +58,7 @@ func (p *Processor) Finish() (j *Job) {
 	j = p.CurrentJob
 	p.beforeFinish(j)
 	p.CurrentJob = nil
+	p.afterFinish(j)
 	return j
 }
 
@@ -82,7 +83,7 @@ func (p *Processor) beforeStart(j *Job) {
 //
 // The callback will be passed the processor itself, the job that was
 // just started, and the processing time that was decided upon for the
-// job. If Start is called on an busy processor, this callback will
+// job. If Start is called on a busy processor, this callback will
 // run but j will be nil.
 func (p *Processor) AfterStart(f func(p *Processor, j *Job, procTime int)) {
 	p.cbAfterStart = append(p.cbAfterStart, f)
@@ -104,6 +105,21 @@ func (p *Processor) BeforeFinish(f func(p *Processor, j *Job)) {
 }
 func (p *Processor) beforeFinish(j *Job) {
 	for _, cb := range p.cbBeforeFinish {
+		cb(p, j)
+	}
+}
+
+// AfterFinish adds a callback to be run immediately after a Job is
+// finished on the processor.
+//
+// The callback will be passed the processor itself and the job that was
+// just finished. If Finish is called on a idle processor, this callback
+// will run but j will be nil.
+func (p *Processor) AfterFinish(f func(p *Processor, j *Job)) {
+	p.cbAfterFinish = append(p.cbAfterFinish, f)
+}
+func (p *Processor) afterFinish(j *Job) {
+	for _, cb := range p.cbAfterFinish {
 		cb(p, j)
 	}
 }
