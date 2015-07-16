@@ -62,6 +62,12 @@ func (p *Processor) Finish() (j *Job) {
 	return j
 }
 
+// IsIdle returns a boolean indicating whether the Processor is available to
+// start a new Job.
+func (p *Processor) IsIdle() bool {
+	return p.CurrentJob == nil
+}
+
 // BeforeStart adds a callback to be run immediately before a Job is started
 // on the processor.
 //

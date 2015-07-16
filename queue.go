@@ -19,6 +19,11 @@ func (q *Queue) Append(j *Job) {
 	q.afterAppend(j)
 }
 
+// Length returns the current number of jobs in the queue.
+func (q *Queue) Length() int {
+	return len(q.Jobs)
+}
+
 // Shift removes a Job from the head of the queue.
 //
 // It returns the Job that was removed, as well as the number of Jobs
