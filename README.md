@@ -7,10 +7,11 @@ together to simulate all kinds of queueing systems, from a grocery store
 checkout line to a kanban board.
 
 A queueing **system** in `qsim` processes arbitrary **jobs** and is
-composed of four pieces:
+composed of 5 pieces:
 
-* The **arrival process** controls how often jobs enter the system and
-  what happens when they arrive. When a job appears, the arrival process
+* The **arrival process** controls how often jobs enter the system.
+* The **arrival behavior** defines what happens when a new job arrives.
+  When the arrival process generates a new job, the arrival behavior
   either sends it straight to a processor or appends it to a queue.
 * **Queues** are simply holding pens for jobs. A system may have many
   queues associated with different processors.
@@ -35,7 +36,8 @@ with `qsim`:
 * **Arrival Process**: The arrival process is simple. A new job
   ("shopper") enters the queueing system ("becomes ready for checkout")
   every *n* seconds, where *n* is picked from some probability
-  distribution you define. When a job enters the system, it goes
+  distribution you define.
+* **Arrival Behavior**: When a job enters the system, it goes
   straight to any processor that is idle (i.e. any checkout lane that
   is empty). If there are no idle processors, the job enters the
   shortest queue available.
