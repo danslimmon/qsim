@@ -14,7 +14,7 @@ func TestJobId(t *testing.T) {
 
 	jobs = make(map[int64]*Job, 100)
 	for i = 0; i < 100; i++ {
-		j = NewJob(true)
+		j = NewJob()
 		if j.JobId < 0 {
 			t.Log("Got negative JobId", j.JobId)
 			t.Fail()
