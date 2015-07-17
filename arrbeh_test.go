@@ -106,3 +106,42 @@ func TestShortestQueueArrBeh(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestShortestQueueArrBehBeforeAssign(t *testing.T) {
+	t.Parallel()
+	var queues []*Queue
+	var procs []*Processor
+	var j, receivedJob *Job
+	var ab ArrBeh
+	var receivedArrBeh ArrBeh
+	var i int
+
+	queues = make([]*Queue, 3)
+	for i = 0; i < 3; i++ {
+		queues[i] = NewQueue()
+	}
+	procs = make([]*Processor, 3)
+	for i = 0; i < 3; i++ {
+		procs[i] = NewProcessor()
+		procs[i].SetProcTimeGenerator(simplePtg)
+	}
+	ab = NewShortestQueueArrBeh(queues, procs)
+
+	cbBeforeAssign := func(cbArrBeh ArrBeh, cbJob *Job) {
+		receivedArrBeh = cbArrBeh
+		receivedJob = cbJob
+	}
+	ab.BeforeAssign(cbBeforeAssign)
+
+	j = NewJob()
+	ab.Assign(j)
+
+	if receivedArrBeh != ab {
+		t.Log("BeforeAssign callback ran with wrong ArrBeh or didn't run")
+		t.Fail()
+	}
+	if receivedJob != j {
+		t.Log("BeforeAssign callback ran with wrong Job or didn't run")
+		t.Fail()
+	}
+}

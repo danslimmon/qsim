@@ -10,6 +10,9 @@ type ArrBeh interface {
 	// Assign takes the given Job and assigns it (according to the
 	// implementation) to a queue or a procesor.
 	Assign(j *Job)
+	// BeforeAssign adds a callback to be run immediately before a Job is
+	// assigned to a Queue or Processor.
+	BeforeAssign(f func(ab ArrBeh, j *Job))
 }
 
 // ShortestQueueArrBeh assigns new Jobs by the following algorithm:
@@ -29,6 +32,10 @@ type ShortestQueueArrBeh struct {
 	// processors keeps track of which Processors are idle. A Processor
 	// is a key in this map iff it is idle.
 	Processors map[*Processor]bool
+
+	// Callback lists
+	cbBeforeAssign []func(ab ArrBeh, j *Job)
+	cbAfterAssign  []func(ab ArrBeh, j *Job)
 }
 
 // See the documentation for ShortestQueueArrBeh.
@@ -45,6 +52,7 @@ func (ab *ShortestQueueArrBeh) Assign(j *Job) {
 			procs = append(procs, proc)
 		}
 
+		ab.beforeAssign(j)
 		if len(procs) == 1 {
 			procs[0].Start(j)
 		} else {
@@ -65,8 +73,18 @@ func (ab *ShortestQueueArrBeh) Assign(j *Job) {
 	// Pick a random element from the list of queues that have the shortest length.
 	i = rand.Intn(len(shortQueues))
 	q = shortQueues[i]
+	ab.beforeAssign(j)
 	q.Append(j)
 	return
+}
+
+func (ab *ShortestQueueArrBeh) BeforeAssign(f func(ArrBeh, *Job)) {
+	ab.cbBeforeAssign = append(ab.cbBeforeAssign, f)
+}
+func (ab *ShortestQueueArrBeh) beforeAssign(j *Job) {
+	for _, cb := range ab.cbBeforeAssign {
+		cb(ab, j)
+	}
 }
 
 // NewShortestQueueArrBeh initializes a ShortestQueueArrBeh with the given Queues &
