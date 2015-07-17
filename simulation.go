@@ -67,10 +67,43 @@ func NewSchedule() *Schedule {
 // RunSimulation simulates a queueing system for a certain number of ticks.
 //
 // The internal operations of a queuing system take care of themselves, so
-// this function is only responsible for things going in and out of the
+// this function is only responsible for things going into and out of the
 // system. It keeps track of the clock and triggers arrivals and
 // job-finishes at the appropriate times.
-/*func RunSimulation(ap ArrProc, procs []*Processor, ticks int) {
-	var schedule *Schedule
+func RunSimulation(ap ArrProc, procs []*Processor, maxTicks int) {
+	var sch *Schedule
+	var p *Processor
 	var clock int
-}*/
+	var ev simEvent
+	sch = NewSchedule()
+
+	// Schedule Processor-finish events. Each Processor gets an AfterStart
+	// callback that schedules a Finish() call for that processor to occur
+	// when the processing time has elapsed.
+	cbAfterStart := func(cbProcessor *Processor, cbJob *Job, cbProcTime int) {
+		eventCb := func(cbClock int) {
+			cbProcessor.Finish()
+		}
+		sch.Add(simEvent{clock + cbProcTime, eventCb})
+	}
+	for _, p = range procs {
+		p.AfterStart(cbAfterStart)
+	}
+
+	// Schedule arrival events, including the initial one.
+	cbAfterArrive := func(cbArrProc ArrProc, cbJob *Job, cbInterval int) {
+		eventCb := func(cbClock int) {
+			ap.Arrive()
+		}
+		sch.Add(simEvent{clock + cbInterval, eventCb})
+	}
+	ap.AfterArrive(cbAfterArrive)
+	sch.Add(simEvent{0, func(cbClock int) { ap.Arrive() }})
+
+	// Run the simulation.
+	for clock = 0; clock <= maxTicks; {
+		ev = sch.Next()
+		clock = ev.T
+		ev.F(clock)
+	}
+}
