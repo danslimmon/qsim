@@ -7,7 +7,7 @@ import (
 
 // An ArrBeh ("arrival behavior") assigns new jobs to queues or processors.
 type ArrBeh interface {
-	Assign(j *Job)
+	Assign(j *Job) Assignment
 	BeforeAssign(f func(ab ArrBeh, j *Job))
 	AfterAssign(f func(ab ArrBeh, j *Job, ass Assignment))
 }
@@ -39,12 +39,13 @@ type ShortestQueueArrBeh struct {
 // Assign takes the given Job and assigns it to a queue or a processor.
 // The documentation for ShortestQueueArrBeh describes the logic used in
 // this implementation.
-func (ab *ShortestQueueArrBeh) Assign(j *Job) {
+func (ab *ShortestQueueArrBeh) Assign(j *Job) Assignment {
 	var proc *Processor
 	var procs []*Processor
 	var q *Queue
 	var shortQueues []*Queue
 	var i, smallestLength int
+	var ass Assignment
 
 	if len(ab.Processors) >= 1 {
 		procs = make([]*Processor, 0)
@@ -55,14 +56,16 @@ func (ab *ShortestQueueArrBeh) Assign(j *Job) {
 		ab.beforeAssign(j)
 		if len(procs) == 1 {
 			procs[0].Start(j)
-			ab.afterAssign(j, Assignment{Type: "Processor", Processor: procs[0]})
+			ass = Assignment{Type: "Processor", Processor: procs[0]}
+			ab.afterAssign(j, ass)
 		} else {
 			// There is more than one idle Processor, so we have to pick one at random.
 			i = rand.Intn(len(procs))
 			procs[i].Start(j)
-			ab.afterAssign(j, Assignment{Type: "Processor", Processor: procs[i]})
+			ass = Assignment{Type: "Processor", Processor: procs[i]}
+			ab.afterAssign(j, ass)
 		}
-		return
+		return ass
 	}
 
 	// If we've arrived here, then there are no idle Processors.
@@ -77,8 +80,9 @@ func (ab *ShortestQueueArrBeh) Assign(j *Job) {
 	q = shortQueues[i]
 	ab.beforeAssign(j)
 	q.Append(j)
-	ab.afterAssign(j, Assignment{Type: "Queue", Queue: q})
-	return
+	ass = Assignment{Type: "Queue", Queue: q}
+	ab.afterAssign(j, ass)
+	return ass
 }
 
 // BeforeAssign adds a callback to run immediately before the Arrival Behavior

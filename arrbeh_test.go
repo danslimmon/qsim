@@ -12,6 +12,7 @@ func TestShortestQueueArrBeh(t *testing.T) {
 	var procs []*Processor
 	var j *Job
 	var ab ArrBeh
+	var ass Assignment
 	var i, jobsQueued, maxQueueLength int
 
 	queues = make([]*Queue, 3)
@@ -27,7 +28,11 @@ func TestShortestQueueArrBeh(t *testing.T) {
 
 	// Test that idle Processors get assigned the next Job immediately
 	for i = 0; i < 3; i++ {
-		ab.Assign(NewJob())
+		ass = ab.Assign(NewJob())
+		if ass.Type != "Processor" {
+			t.Log("Assign returned Assignment with wrong type. Expected 'Processor' but got", ass.Type)
+			t.Fail()
+		}
 	}
 	for _, p = range procs {
 		if p.IsIdle() {
@@ -43,7 +48,11 @@ func TestShortestQueueArrBeh(t *testing.T) {
 	}
 
 	// Test that an arrival when all Processors are busy gets placed in a Queue
-	ab.Assign(NewJob())
+	ass = ab.Assign(NewJob())
+	if ass.Type != "Queue" {
+		t.Log("Assign returned Assignment with wrong type. Expected 'Queue' but got", ass.Type)
+		t.Fail()
+	}
 	jobsQueued = 0
 	for _, q = range queues {
 		jobsQueued += q.Length()
