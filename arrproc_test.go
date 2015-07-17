@@ -43,3 +43,33 @@ func TestConstantArrProcBeforeArrive(t *testing.T) {
 		t.Fail()
 	}
 }
+
+// Tests the AfterArrive callback on ConstantArrProc.
+func TestConstantArrProcAfterArrive(t *testing.T) {
+	t.Parallel()
+	var ap, receivedArrProc ArrProc
+	var j, receivedJob *Job
+	var interval, receivedInterval int
+
+	cbAfterArrive := func(cbArrProc ArrProc, cbJob *Job, cbInterval int) {
+		receivedArrProc = cbArrProc
+		receivedJob = cbJob
+		receivedInterval = cbInterval
+	}
+
+	ap = NewConstantArrProc(72)
+	ap.AfterArrive(cbAfterArrive)
+	j, interval = ap.Arrive()
+	if ap != receivedArrProc {
+		t.Log("AfterArrive ran with wrong ArrProc or didn't run")
+		t.Fail()
+	}
+	if j != receivedJob {
+		t.Log("AfterArrive ran with wrong Job or didn't run")
+		t.Fail()
+	}
+	if interval != receivedInterval {
+		t.Log("AfterArrive ran with wrong interval or didn't run")
+		t.Fail()
+	}
+}
