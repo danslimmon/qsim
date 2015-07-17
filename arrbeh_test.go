@@ -145,3 +145,73 @@ func TestShortestQueueArrBehBeforeAssign(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestShortestQueueArrBehAfterAssign(t *testing.T) {
+	t.Parallel()
+	var queues []*Queue
+	var procs []*Processor
+	var j, receivedJob *Job
+	var ab ArrBeh
+	var receivedArrBeh ArrBeh
+	var receivedAssignment Assignment
+	var i int
+
+	queues = make([]*Queue, 3)
+	for i = 0; i < 3; i++ {
+		queues[i] = NewQueue()
+	}
+	procs = make([]*Processor, 3)
+	for i = 0; i < 3; i++ {
+		procs[i] = NewProcessor()
+		procs[i].SetProcTimeGenerator(simplePtg)
+	}
+	ab = NewShortestQueueArrBeh(queues, procs)
+
+	cbAfterAssign := func(cbArrBeh ArrBeh, cbJob *Job, cbAssignment Assignment) {
+		receivedArrBeh = cbArrBeh
+		receivedJob = cbJob
+		receivedAssignment = cbAssignment
+	}
+	ab.AfterAssign(cbAfterAssign)
+
+	j = NewJob()
+	ab.Assign(j)
+
+	if receivedArrBeh != ab {
+		t.Log("AfterAssign callback ran with wrong ArrBeh or didn't run")
+		t.Fail()
+	}
+	if receivedJob != j {
+		t.Log("AfterAssign callback ran with wrong Job or didn't run")
+		t.Fail()
+	}
+	if receivedAssignment.Type != "Processor" {
+		t.Log("Expected Assignment Type 'Processor' but got", receivedAssignment.Type)
+		t.Fail()
+	}
+	if receivedAssignment.Processor == nil {
+		t.Log("Assignment Type was 'Processor' but Processor = nil")
+	}
+
+	// Now test what happens when the assignment is to a Queue rather than a Processor
+	ab.Assign(NewJob())
+	ab.Assign(NewJob())
+	j = NewJob()
+	ab.Assign(j)
+
+	if receivedArrBeh != ab {
+		t.Log("AfterAssign callback ran with wrong ArrBeh or didn't run")
+		t.Fail()
+	}
+	if receivedJob != j {
+		t.Log("AfterAssign callback ran with wrong Job or didn't run")
+		t.Fail()
+	}
+	if receivedAssignment.Type != "Queue" {
+		t.Log("Expected Assignment Type 'Queue' but got", receivedAssignment.Type)
+		t.Fail()
+	}
+	if receivedAssignment.Queue == nil {
+		t.Log("Assignment Type was 'Queue' but Queue = nil")
+	}
+}

@@ -7,15 +7,13 @@ import (
 
 // An ArrBeh ("arrival behavior") assigns new jobs to queues or processors.
 type ArrBeh interface {
-	// Assign takes the given Job and assigns it (according to the
-	// implementation) to a queue or a procesor.
 	Assign(j *Job)
-	// BeforeAssign adds a callback to be run immediately before a Job is
-	// assigned to a Queue or Processor.
 	BeforeAssign(f func(ab ArrBeh, j *Job))
+	AfterAssign(f func(ab ArrBeh, j *Job, ass Assignment))
 }
 
-// ShortestQueueArrBeh assigns new Jobs by the following algorithm:
+// ShortestQueueArrBeh implements the ArrBeh interface, assigning new
+// Jobs by the following algorithm:
 //
 // – If there is at least one idle Processor, pick an idle Processor at
 //   random and start the Job on it.
@@ -35,10 +33,12 @@ type ShortestQueueArrBeh struct {
 
 	// Callback lists
 	cbBeforeAssign []func(ab ArrBeh, j *Job)
-	cbAfterAssign  []func(ab ArrBeh, j *Job)
+	cbAfterAssign  []func(ab ArrBeh, j *Job, ass Assignment)
 }
 
-// See the documentation for ShortestQueueArrBeh.
+// Assign takes the given Job and assigns it to a queue or a processor.
+// The documentation for ShortestQueueArrBeh describes the logic used in
+// this implementation.
 func (ab *ShortestQueueArrBeh) Assign(j *Job) {
 	var proc *Processor
 	var procs []*Processor
@@ -55,10 +55,12 @@ func (ab *ShortestQueueArrBeh) Assign(j *Job) {
 		ab.beforeAssign(j)
 		if len(procs) == 1 {
 			procs[0].Start(j)
+			ab.afterAssign(j, Assignment{Type: "Processor", Processor: procs[0]})
 		} else {
 			// There is more than one idle Processor, so we have to pick one at random.
 			i = rand.Intn(len(procs))
 			procs[i].Start(j)
+			ab.afterAssign(j, Assignment{Type: "Processor", Processor: procs[i]})
 		}
 		return
 	}
@@ -75,15 +77,32 @@ func (ab *ShortestQueueArrBeh) Assign(j *Job) {
 	q = shortQueues[i]
 	ab.beforeAssign(j)
 	q.Append(j)
+	ab.afterAssign(j, Assignment{Type: "Queue", Queue: q})
 	return
 }
 
+// BeforeAssign adds a callback to run immediately before the Arrival Behavior
+// assigns a job to a Queue or Processor. This callback is passed the ArrBeh
+// itself as well as the Job that's about to be assigned.
 func (ab *ShortestQueueArrBeh) BeforeAssign(f func(ArrBeh, *Job)) {
 	ab.cbBeforeAssign = append(ab.cbBeforeAssign, f)
 }
 func (ab *ShortestQueueArrBeh) beforeAssign(j *Job) {
 	for _, cb := range ab.cbBeforeAssign {
 		cb(ab, j)
+	}
+}
+
+// BeforeAssign adds a callback to run immediately after the Arrival Behavior
+// assigns a job to a Queue or Processor. This callback is passed the ArrBeh
+// itself, the Job that's about to be assigned, and an Assignment struct
+// indicating where the Job was placed.
+func (ab *ShortestQueueArrBeh) AfterAssign(f func(ArrBeh, *Job, Assignment)) {
+	ab.cbAfterAssign = append(ab.cbAfterAssign, f)
+}
+func (ab *ShortestQueueArrBeh) afterAssign(j *Job, ass Assignment) {
+	for _, cb := range ab.cbAfterAssign {
+		cb(ab, j, ass)
 	}
 }
 
@@ -115,6 +134,17 @@ func NewShortestQueueArrBeh(queues []*Queue, procs []*Processor) ArrBeh {
 	}
 
 	return ab
+}
+
+// An Assignment indicates where a Job has been assigned by an Arrival Behavior.
+//
+// The string Type will be either "Processor" or "Queue", and the corresponding
+// attribute (either Processor or Queue) will contain the entity to which the
+// Job was assigned. The other attribute will be nil.
+type Assignment struct {
+	Type      string
+	Processor *Processor
+	Queue     *Queue
 }
 
 // ByQueueLength implements sort.Interface for []*Queue based on Length.
