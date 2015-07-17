@@ -73,3 +73,29 @@ func TestConstantArrProcAfterArrive(t *testing.T) {
 		t.Fail()
 	}
 }
+
+// Tests a dead-simple Arrival Process
+func TestPoissonArrProc(t *testing.T) {
+	t.Parallel()
+	var ap ArrProc
+	var j *Job
+	var i, time, interval int
+
+	// Poisson arrival process with a mean arrival interval of 1000
+	// ticks.
+	ap = NewPoissonArrProc(1000)
+	for i = 0; i < 1000; i++ {
+		j, interval = ap.Arrive()
+		if j == nil {
+			t.Log("PoissonArrProc.Arrive returned nil job")
+			t.Fail()
+		}
+		time += interval
+	}
+	if time < 800*1000 || time > 1200*1000 {
+		// The probability of the mean being this far away from 1000 is extremely low, so
+		// this test should be fine.
+		t.Log("Average arrival interval from PoissonArrProc is too far from 1000: got", time/1000)
+		t.Fail()
+	}
+}
