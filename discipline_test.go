@@ -14,8 +14,7 @@ func TestOneToOneFIFODiscipline(t *testing.T) {
 
 	for i = 0; i < 3; i++ {
 		queues = append(queues, NewQueue())
-		procs = append(procs, NewProcessor())
-		procs[i].SetProcTimeGenerator(simplePtg)
+		procs = append(procs, NewProcessor(simplePtg))
 	}
 	NewOneToOneFIFODiscipline(queues, procs)
 

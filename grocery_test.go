@@ -50,9 +50,8 @@ func (sys *GrocerySystem) Init() {
 	for i = 0; i < 3; i++ {
 		sys.queues[i] = NewQueue()
 		sys.queues[i].QueueId = i
-		sys.processors[i] = NewProcessor()
+		sys.processors[i] = NewProcessor(procTimeGenerator)
 		sys.processors[i].ProcessorId = i
-		sys.processors[i].SetProcTimeGenerator(procTimeGenerator)
 		sys.processors[i].AfterFinish(func(p *Processor, j *Job) {
 			sys.FinishedJobs = append(sys.FinishedJobs, j)
 		})

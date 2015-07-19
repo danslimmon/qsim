@@ -17,8 +17,7 @@ func TestProcessorStart(t *testing.T) {
 	var procTime int
 	var err error
 
-	proc = NewProcessor()
-	proc.SetProcTimeGenerator(simplePtg)
+	proc = NewProcessor(simplePtg)
 	j0 = NewJob(0)
 
 	procTime, err = proc.Start(j0)
@@ -60,8 +59,7 @@ func TestProcessorFinish(t *testing.T) {
 	var proc *Processor
 	var j *Job
 
-	proc = NewProcessor()
-	proc.SetProcTimeGenerator(simplePtg)
+	proc = NewProcessor(simplePtg)
 	j = NewJob(0)
 	proc.Start(j)
 	if j != proc.Finish() {
@@ -81,8 +79,7 @@ func TestBeforeStart(t *testing.T) {
 	var proc, receivedProc *Processor
 	var j0, j1, receivedJob *Job
 
-	proc = NewProcessor()
-	proc.SetProcTimeGenerator(simplePtg)
+	proc = NewProcessor(simplePtg)
 	j0 = NewJob(0)
 
 	cbBeforeStart := func(cbProc *Processor, cbJob *Job) {
@@ -122,8 +119,7 @@ func TestAfterStart(t *testing.T) {
 	var j0, j1, receivedJob *Job
 	var receivedProcTime int
 
-	proc = NewProcessor()
-	proc.SetProcTimeGenerator(simplePtg)
+	proc = NewProcessor(simplePtg)
 	j0 = NewJob(0)
 
 	cbAfterStart := func(cbProc *Processor, cbJob *Job, cbProcTime int) {
@@ -163,8 +159,7 @@ func TestBeforeFinish(t *testing.T) {
 	var proc, receivedProc *Processor
 	var j, receivedJob *Job
 
-	proc = NewProcessor()
-	proc.SetProcTimeGenerator(simplePtg)
+	proc = NewProcessor(simplePtg)
 	j = NewJob(0)
 	proc.Start(j)
 
@@ -203,8 +198,7 @@ func TestAfterFinish(t *testing.T) {
 	var proc, receivedProc *Processor
 	var j, receivedJob *Job
 
-	proc = NewProcessor()
-	proc.SetProcTimeGenerator(simplePtg)
+	proc = NewProcessor(simplePtg)
 	j = NewJob(0)
 	proc.Start(j)
 

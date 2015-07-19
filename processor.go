@@ -138,6 +138,8 @@ func (p *Processor) afterFinish(j *Job) {
 }
 
 // NewProcessor creates a new Processor struct.
-func NewProcessor() (p *Processor) {
-	return new(Processor)
+func NewProcessor(procTimeGenerator func(j *Job) int) (p *Processor) {
+	p = new(Processor)
+	p.SetProcTimeGenerator(procTimeGenerator)
+	return
 }

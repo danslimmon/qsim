@@ -21,8 +21,7 @@ func TestShortestQueueArrBeh(t *testing.T) {
 	}
 	procs = make([]*Processor, 3)
 	for i = 0; i < 3; i++ {
-		procs[i] = NewProcessor()
-		procs[i].SetProcTimeGenerator(simplePtg)
+		procs[i] = NewProcessor(simplePtg)
 	}
 	ab = NewShortestQueueArrBeh(queues, procs)
 
@@ -131,8 +130,7 @@ func TestShortestQueueArrBehBeforeAssign(t *testing.T) {
 	}
 	procs = make([]*Processor, 3)
 	for i = 0; i < 3; i++ {
-		procs[i] = NewProcessor()
-		procs[i].SetProcTimeGenerator(simplePtg)
+		procs[i] = NewProcessor(simplePtg)
 	}
 	ab = NewShortestQueueArrBeh(queues, procs)
 
@@ -171,8 +169,7 @@ func TestShortestQueueArrBehAfterAssign(t *testing.T) {
 	}
 	procs = make([]*Processor, 3)
 	for i = 0; i < 3; i++ {
-		procs[i] = NewProcessor()
-		procs[i].SetProcTimeGenerator(simplePtg)
+		procs[i] = NewProcessor(simplePtg)
 	}
 	ab = NewShortestQueueArrBeh(queues, procs)
 
