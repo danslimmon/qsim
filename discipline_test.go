@@ -14,15 +14,31 @@ func TestOneToOneFIFODiscipline(t *testing.T) {
 
 	for i = 0; i < 3; i++ {
 		queues = append(queues, NewQueue())
+		queues[i].QueueId = i
 		procs = append(procs, NewProcessor(simplePtg))
+		procs[i].ProcessorId = i
+
+		// Make sure that Processors only pull work from their own queues.
+		procs[i].BeforeStart(func(p *Processor, j *Job) {
+			var queueId int
+			queueId = j.IntAttrs["queue_id"]
+			if queueId != p.ProcessorId {
+				t.Log("Processor", p.ProcessorId, "pulled a Job from Queue", queueId)
+				t.Fail()
+			}
+		})
 	}
 	NewOneToOneFIFODiscipline(queues, procs)
 
 	for i = 0; i < 3; i++ {
-		procs[i].Start(NewJob(0))
+		j = NewJob(0)
+		j.IntAttrs["queue_id"] = i
+		procs[i].Start(j)
 	}
 	for i = 0; i < 6; i++ {
-		queues[i%3].Append(NewJob(0))
+		j = NewJob(0)
+		j.IntAttrs["queue_id"] = i % 3
+		queues[i%3].Append(j)
 	}
 
 	j = queues[2].Jobs[0]
@@ -33,18 +49,6 @@ func TestOneToOneFIFODiscipline(t *testing.T) {
 	}
 	if queues[2].Length() != 1 {
 		t.Log("A Job should've been shifted out of the Queue, but Queue is still the same length as before")
-		t.Fail()
-	}
-
-	// Make sure that Processors only pull work from their own Queue
-	procs[2].Finish()
-	procs[2].Finish()
-	if !procs[2].IsIdle() {
-		t.Log("Processor is not idle, but it shouldn't have had any more work in its queue")
-		t.Fail()
-	}
-	if queues[2].Length() != 0 {
-		t.Log("Processor finished all work in its Queue, but the Queue isn't empty")
 		t.Fail()
 	}
 }

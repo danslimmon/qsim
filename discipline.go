@@ -15,6 +15,8 @@ type OneToOneFIFODiscipline struct {
 	Processors []*Processor
 }
 
+// AssignQueueToProcessor assigns a given Queue to a given Processor. That
+// Processor pull Jobs from that Queue, and only from that Queue.
 func (d *OneToOneFIFODiscipline) AssignQueueToProcessor(q *Queue, p *Processor) {
 	cbAfterFinish := func(cbProc *Processor, cbJob *Job) {
 		var j *Job

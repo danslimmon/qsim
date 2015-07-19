@@ -1,7 +1,6 @@
 package qsim
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -14,15 +13,15 @@ func TestQueueAppend(t *testing.T) {
 
 	for i := 0; i < 20; i++ {
 		j = NewJob(0)
-		j.Attrs["i"] = fmt.Sprintf("%d", i)
+		j.IntAttrs["i"] = i
 		q.Append(j)
 	}
 
-	if q.Jobs[0].Attrs["i"] != "0" {
+	if q.Jobs[0].IntAttrs["i"] != 0 {
 		t.Log("Zeroeth element not found at index 0")
 		t.Fail()
 	}
-	if q.Jobs[19].Attrs["i"] != "19" {
+	if q.Jobs[19].IntAttrs["i"] != 19 {
 		t.Log("Nineteenth element not found at index 19")
 		t.Fail()
 	}
@@ -40,15 +39,15 @@ func TestQueueShift(t *testing.T) {
 	q = NewQueue()
 
 	j0 = NewJob(0)
-	j0.Attrs["i"] = "0"
+	j0.IntAttrs["i"] = 0
 	q.Append(j0)
 
 	j1 = NewJob(0)
-	j1.Attrs["i"] = "1"
+	j1.IntAttrs["i"] = 1
 	q.Append(j1)
 
 	j, nrem = q.Shift()
-	if j.Attrs["i"] != "0" {
+	if j.IntAttrs["i"] != 0 {
 		t.Log("Zeroeth element was not the first to be shifted")
 		t.Fail()
 	}
@@ -58,7 +57,7 @@ func TestQueueShift(t *testing.T) {
 	}
 
 	j, nrem = q.Shift()
-	if j.Attrs["i"] != "1" {
+	if j.IntAttrs["i"] != 1 {
 		t.Log("Last element was not the last to be shifted")
 		t.Fail()
 	}
@@ -81,18 +80,18 @@ func TestQueueBeforeAppend(t *testing.T) {
 	var j *Job
 	q = NewQueue()
 
-	var counter string
+	var counter int
 	var qLen int
 	cb := func(q *Queue, j *Job) {
-		counter = j.Attrs["i"]
+		counter = j.IntAttrs["i"]
 		qLen = len(q.Jobs)
 	}
 	q.BeforeAppend(cb)
 
 	j = NewJob(0)
-	j.Attrs["i"] = "0"
+	j.IntAttrs["i"] = 0
 	q.Append(j)
-	if counter != "0" {
+	if counter != 0 {
 		t.Log("Expected BeforeAppend callback to set counter=0")
 		t.Fail()
 	}
@@ -102,9 +101,9 @@ func TestQueueBeforeAppend(t *testing.T) {
 	}
 
 	j = NewJob(0)
-	j.Attrs["i"] = "1"
+	j.IntAttrs["i"] = 1
 	q.Append(j)
-	if counter != "1" {
+	if counter != 1 {
 		t.Log("Expected BeforeAppend callback to set counter=1")
 		t.Fail()
 	}
@@ -121,18 +120,18 @@ func TestQueueAfterAppend(t *testing.T) {
 	var j *Job
 	q = NewQueue()
 
-	var counter string
+	var counter int
 	var qLen int
 	cb := func(q *Queue, j *Job) {
-		counter = j.Attrs["i"]
+		counter = j.IntAttrs["i"]
 		qLen = len(q.Jobs)
 	}
 	q.AfterAppend(cb)
 
 	j = NewJob(0)
-	j.Attrs["i"] = "0"
+	j.IntAttrs["i"] = 0
 	q.Append(j)
-	if counter != "0" {
+	if counter != 0 {
 		t.Log("Expected AfterAppend callback to set counter=0")
 		t.Fail()
 	}
@@ -142,9 +141,9 @@ func TestQueueAfterAppend(t *testing.T) {
 	}
 
 	j = NewJob(0)
-	j.Attrs["i"] = "1"
+	j.IntAttrs["i"] = 1
 	q.Append(j)
-	if counter != "1" {
+	if counter != 1 {
 		t.Log("Expected AfterAppend callback to set counter=1")
 		t.Fail()
 	}
@@ -161,27 +160,27 @@ func TestQueueBeforeShift(t *testing.T) {
 	var j *Job
 	q = NewQueue()
 
-	var counter string
+	var counter int
 	var qLen int
 	cb := func(q *Queue, j *Job) {
 		if j != nil {
-			counter = j.Attrs["i"]
+			counter = j.IntAttrs["i"]
 		} else {
-			counter = "queue_was_empty"
+			counter = -1
 		}
 		qLen = len(q.Jobs)
 	}
 	q.BeforeShift(cb)
 
 	j = NewJob(0)
-	j.Attrs["i"] = "0"
+	j.IntAttrs["i"] = 0
 	q.Append(j)
 	j = NewJob(0)
-	j.Attrs["i"] = "1"
+	j.IntAttrs["i"] = 1
 	q.Append(j)
 
 	q.Shift()
-	if counter != "0" {
+	if counter != 0 {
 		t.Log("Expected BeforeShift callback to set counter=0")
 		t.Fail()
 	}
@@ -191,7 +190,7 @@ func TestQueueBeforeShift(t *testing.T) {
 	}
 
 	q.Shift()
-	if counter != "1" {
+	if counter != 1 {
 		t.Log("Expected BeforeShift callback to set counter=1")
 		t.Fail()
 	}
@@ -201,8 +200,8 @@ func TestQueueBeforeShift(t *testing.T) {
 	}
 
 	q.Shift()
-	if counter != "queue_was_empty" {
-		t.Log("Expected BeforeShift callback to set counter=queue_was_empty")
+	if counter != -1 {
+		t.Log("Expected BeforeShift callback to set counter=-1")
 		t.Fail()
 	}
 	if qLen != 0 {
@@ -218,27 +217,27 @@ func TestQueueAfterShift(t *testing.T) {
 	var j *Job
 	q = NewQueue()
 
-	var counter string
+	var counter int
 	var qLen int
 	cb := func(q *Queue, j *Job) {
 		if j != nil {
-			counter = j.Attrs["i"]
+			counter = j.IntAttrs["i"]
 		} else {
-			counter = "queue_was_empty"
+			counter = -1
 		}
 		qLen = len(q.Jobs)
 	}
 	q.AfterShift(cb)
 
 	j = NewJob(0)
-	j.Attrs["i"] = "0"
+	j.IntAttrs["i"] = 0
 	q.Append(j)
 	j = NewJob(0)
-	j.Attrs["i"] = "1"
+	j.IntAttrs["i"] = 1
 	q.Append(j)
 
 	q.Shift()
-	if counter != "0" {
+	if counter != 0 {
 		t.Log("Expected AfterShift callback to set counter=0")
 		t.Fail()
 	}
@@ -248,7 +247,7 @@ func TestQueueAfterShift(t *testing.T) {
 	}
 
 	q.Shift()
-	if counter != "1" {
+	if counter != 1 {
 		t.Log("Expected AfterShift callback to set counter=1")
 		t.Fail()
 	}
@@ -258,8 +257,8 @@ func TestQueueAfterShift(t *testing.T) {
 	}
 
 	q.Shift()
-	if counter != "queue_was_empty" {
-		t.Log("Expected AfterShift callback to set counter=queue_was_empty")
+	if counter != -1 {
+		t.Log("Expected AfterShift callback to set counter=-1")
 		t.Fail()
 	}
 	if qLen != 0 {
