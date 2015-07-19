@@ -13,7 +13,7 @@ func TestConstantArrProc(t *testing.T) {
 
 	ap = NewConstantArrProc(72)
 	for i = 0; i < 10; i++ {
-		j, interval = ap.Arrive()
+		j, interval = ap.Arrive(0)
 		if j == nil {
 			t.Log("ConstantArrProc.Arrive returned nil job")
 			t.Fail()
@@ -37,7 +37,7 @@ func TestConstantArrProcBeforeArrive(t *testing.T) {
 
 	ap = NewConstantArrProc(72)
 	ap.BeforeArrive(cbBeforeArrive)
-	ap.Arrive()
+	ap.Arrive(0)
 	if ap != receivedArrProc {
 		t.Log("BeforeArrive ran with wrong ArrProc or didn't run")
 		t.Fail()
@@ -59,7 +59,7 @@ func TestConstantArrProcAfterArrive(t *testing.T) {
 
 	ap = NewConstantArrProc(72)
 	ap.AfterArrive(cbAfterArrive)
-	j, interval = ap.Arrive()
+	j, interval = ap.Arrive(0)
 	if ap != receivedArrProc {
 		t.Log("AfterArrive ran with wrong ArrProc or didn't run")
 		t.Fail()
@@ -85,7 +85,7 @@ func TestPoissonArrProc(t *testing.T) {
 	// ticks.
 	ap = NewPoissonArrProc(1000)
 	for i = 0; i < 1000; i++ {
-		j, interval = ap.Arrive()
+		j, interval = ap.Arrive(0)
 		if j == nil {
 			t.Log("PoissonArrProc.Arrive returned nil job")
 			t.Fail()

@@ -36,19 +36,27 @@ func (sch *Schedule) Add(newEv simEvent) {
 	return
 }
 
-// Next returns the next event in the schedule and removes that event from the
-// schedule.
-func (sch *Schedule) Next() simEvent {
-	var ev simEvent
+// Next returns the events in the schedule that are next to occur and removes
+// those events from the schedule. It also returns the tick at which those
+// events occur.
+func (sch *Schedule) NextTick() (events []simEvent, tick int) {
+	var i int
 
-	// This should never happen, which means it definitely will.
+	// This should never happen, which means it definitely will some day.
 	if len(sch.events) == 0 {
 		panic("next Schedule event requested but Schedule is empty")
 	}
 
-	ev = sch.events[0]
-	sch.events = sch.events[1:]
-	return ev
+	events = append(events, sch.events[0])
+	for i = 1; i < len(sch.events); i++ {
+		if sch.events[i].T == events[0].T {
+			events = append(events, sch.events[i])
+		} else {
+			break
+		}
+	}
+	sch.events = sch.events[i:]
+	return events, events[0].T
 }
 
 // insertEvent places a simEvent at the given index in sch.events.
@@ -64,17 +72,46 @@ func NewSchedule() *Schedule {
 	return new(Schedule)
 }
 
+// A System is the thing you simulate. You implement this interface and
+// pass your implementation to RunSimulation().
+type System interface {
+	// Init runs before the simulation begins, and its job is to set up the
+	// Queues, Processors, and behaviors.
+	Init()
+	// ArrProc returns the system's arrival process.
+	ArrProc() ArrProc
+	// ArrBeh returns the system's arrival behavior.
+	ArrBeh() ArrBeh
+	// BeforeEvents runs at every tick when a simulation event happens (a
+	// Job arrives in the system, or a Job finishes processing and leaves
+	// the system). BeforeEvents is called after all the events for the tick
+	// in question have finished.
+	BeforeEvents(clock int)
+	// AfterEvents runs at every tick when a simulation event happens, but
+	// in contrast with BeforeEvents, it runs after all the events for that
+	// tick have occurred.
+	AfterEvents(clock int)
+	// Processors returns the list of Processors in the system.
+	Processors() []*Processor
+}
+
 // RunSimulation simulates a queueing system for a certain number of ticks.
 //
 // The internal operations of a queuing system take care of themselves, so
 // this function is only responsible for things going into and out of the
 // system. It keeps track of the clock and triggers arrivals and
 // job-finishes at the appropriate times.
-func RunSimulation(ap ArrProc, procs []*Processor, maxTicks int) {
+//
+// The return value is the last tick on which events occurred in the
+// simulation. This may or may not be equal to maxTicks.
+func RunSimulation(sys System, maxTicks int) (finalTick int) {
 	var sch *Schedule
 	var p *Processor
 	var clock int
 	var ev simEvent
+	var events []simEvent
+
+	sys.Init()
 	sch = NewSchedule()
 
 	// Schedule Processor-finish events. Each Processor gets an AfterStart
@@ -86,24 +123,34 @@ func RunSimulation(ap ArrProc, procs []*Processor, maxTicks int) {
 		}
 		sch.Add(simEvent{clock + cbProcTime, eventCb})
 	}
-	for _, p = range procs {
+	for _, p = range sys.Processors() {
 		p.AfterStart(cbAfterStart)
 	}
+
+	// Make sure that newly arriving Jobs get assigned.
+	sys.ArrProc().AfterArrive(func(cbArrProc ArrProc, cbJob *Job, cbInterval int) {
+		sys.ArrBeh().Assign(cbJob)
+	})
 
 	// Schedule arrival events, including the initial one.
 	cbAfterArrive := func(cbArrProc ArrProc, cbJob *Job, cbInterval int) {
 		eventCb := func(cbClock int) {
-			ap.Arrive()
+			sys.ArrProc().Arrive(cbClock)
 		}
 		sch.Add(simEvent{clock + cbInterval, eventCb})
 	}
-	ap.AfterArrive(cbAfterArrive)
-	sch.Add(simEvent{0, func(cbClock int) { ap.Arrive() }})
+	sys.ArrProc().AfterArrive(cbAfterArrive)
+	sch.Add(simEvent{0, func(cbClock int) { sys.ArrProc().Arrive(cbClock) }})
 
 	// Run the simulation.
 	for clock = 0; clock <= maxTicks; {
-		ev = sch.Next()
-		clock = ev.T
-		ev.F(clock)
+		events, clock = sch.NextTick()
+		sys.BeforeEvents(clock)
+		for _, ev = range events {
+			ev.F(clock)
+		}
+		sys.AfterEvents(clock)
 	}
+
+	return clock
 }

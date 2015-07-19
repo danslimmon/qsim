@@ -28,7 +28,7 @@ func TestShortestQueueArrBeh(t *testing.T) {
 
 	// Test that idle Processors get assigned the next Job immediately
 	for i = 0; i < 3; i++ {
-		ass = ab.Assign(NewJob())
+		ass = ab.Assign(NewJob(0))
 		if ass.Type != "Processor" {
 			t.Log("Assign returned Assignment with wrong type. Expected 'Processor' but got", ass.Type)
 			t.Fail()
@@ -48,7 +48,7 @@ func TestShortestQueueArrBeh(t *testing.T) {
 	}
 
 	// Test that an arrival when all Processors are busy gets placed in a Queue
-	ass = ab.Assign(NewJob())
+	ass = ab.Assign(NewJob(0))
 	if ass.Type != "Queue" {
 		t.Log("Assign returned Assignment with wrong type. Expected 'Queue' but got", ass.Type)
 		t.Fail()
@@ -64,7 +64,7 @@ func TestShortestQueueArrBeh(t *testing.T) {
 
 	// Test a few more arrivals
 	for i = 0; i < 9; i++ {
-		ab.Assign(NewJob())
+		ab.Assign(NewJob(0))
 	}
 	jobsQueued = 0
 	maxQueueLength = 0
@@ -91,7 +91,7 @@ func TestShortestQueueArrBeh(t *testing.T) {
 	procs[1].Finish()
 	j, _ = queues[1].Shift()
 	procs[1].Start(j)
-	ab.Assign(NewJob())
+	ab.Assign(NewJob(0))
 	jobsQueued = 0
 	for _, q = range queues {
 		jobsQueued += q.Length()
@@ -109,7 +109,7 @@ func TestShortestQueueArrBeh(t *testing.T) {
 		procs[i%3].Start(j)
 	}
 	procs[1].Finish()
-	ab.Assign(NewJob())
+	ab.Assign(NewJob(0))
 	if procs[1].IsIdle() {
 		t.Log("A Job arriving after the Queues were cleared out did not get assigned directly to a Processor")
 		t.Fail()
@@ -142,7 +142,7 @@ func TestShortestQueueArrBehBeforeAssign(t *testing.T) {
 	}
 	ab.BeforeAssign(cbBeforeAssign)
 
-	j = NewJob()
+	j = NewJob(0)
 	ab.Assign(j)
 
 	if receivedArrBeh != ab {
@@ -183,7 +183,7 @@ func TestShortestQueueArrBehAfterAssign(t *testing.T) {
 	}
 	ab.AfterAssign(cbAfterAssign)
 
-	j = NewJob()
+	j = NewJob(0)
 	ab.Assign(j)
 
 	if receivedArrBeh != ab {
@@ -203,9 +203,9 @@ func TestShortestQueueArrBehAfterAssign(t *testing.T) {
 	}
 
 	// Now test what happens when the assignment is to a Queue rather than a Processor
-	ab.Assign(NewJob())
-	ab.Assign(NewJob())
-	j = NewJob()
+	ab.Assign(NewJob(0))
+	ab.Assign(NewJob(0))
+	j = NewJob(0)
 	ab.Assign(j)
 
 	if receivedArrBeh != ab {

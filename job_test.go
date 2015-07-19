@@ -14,13 +14,17 @@ func TestJobId(t *testing.T) {
 
 	jobs = make(map[int64]*Job, 100)
 	for i = 0; i < 100; i++ {
-		j = NewJob()
+		j = NewJob(118)
 		if j.JobId < 0 {
-			t.Log("Got negative JobId", j.JobId)
+			t.Log("Got nonpositive JobId", j.JobId)
 			t.Fail()
 		}
 		if _, ok = jobs[j.JobId]; ok {
 			t.Log("Got duplicate JobId", j.JobId)
+			t.Fail()
+		}
+		if j.ArrTime != 118 {
+			t.Log("Got wrong ArrTime", j.JobId)
 			t.Fail()
 		}
 		jobs[j.JobId] = j

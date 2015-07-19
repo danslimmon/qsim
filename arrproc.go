@@ -6,7 +6,7 @@ import (
 
 // An ArrProc (short for "arrival process") generates new Jobs at some interval.
 type ArrProc interface {
-	Arrive() (j *Job, interval int)
+	Arrive(clock int) (j *Job, interval int)
 	BeforeArrive(f func(ap ArrProc))
 	AfterArrive(f func(ap ArrProc, j *Job, interval int))
 }
@@ -25,9 +25,11 @@ type ConstantArrProc struct {
 
 // Arrive generates a Job and returns the constant value of Interval as the
 // number of ticks that will elapse before the next arrival.
-func (ap *ConstantArrProc) Arrive() (j *Job, interval int) {
+//
+// clock is the current simulation clock time.
+func (ap *ConstantArrProc) Arrive(clock int) (j *Job, interval int) {
 	ap.beforeArrive()
-	j = NewJob()
+	j = NewJob(clock)
 	interval = ap.Interval
 	ap.afterArrive(j, interval)
 	return
@@ -90,9 +92,11 @@ type PoissonArrProc struct {
 
 // Arrive generates a Job and returns the interval that will elapse before the
 // subsequent arrival. These arrival intervals are exponentially distributed.
-func (ap *PoissonArrProc) Arrive() (j *Job, interval int) {
+//
+// clock is the current simulation clock time.
+func (ap *PoissonArrProc) Arrive(clock int) (j *Job, interval int) {
 	ap.beforeArrive()
-	j = NewJob()
+	j = NewJob(clock)
 	interval = ap.pickInterval()
 	ap.afterArrive(j, interval)
 	return

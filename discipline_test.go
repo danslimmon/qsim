@@ -20,10 +20,10 @@ func TestOneToOneFIFODiscipline(t *testing.T) {
 	NewOneToOneFIFODiscipline(queues, procs)
 
 	for i = 0; i < 3; i++ {
-		procs[i].Start(NewJob())
+		procs[i].Start(NewJob(0))
 	}
 	for i = 0; i < 6; i++ {
-		queues[i%3].Append(NewJob())
+		queues[i%3].Append(NewJob(0))
 	}
 
 	j = queues[2].Jobs[0]

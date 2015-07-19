@@ -8,8 +8,12 @@ func TestSchedule(t *testing.T) {
 	t.Parallel()
 	var sch *Schedule
 	var ev simEvent
-	var addOrder, recvOrder []int
+	var events []simEvent
+	var addOrder []int
 	var tick int
+	type recvExpectation struct{ Tick, NumEvents int }
+	var recvOrder []recvExpectation
+	var exp recvExpectation
 	f := func(clock int) {}
 
 	sch = NewSchedule()
@@ -18,12 +22,24 @@ func TestSchedule(t *testing.T) {
 		sch.Add(simEvent{tick, f})
 	}
 
-	recvOrder = []int{2, 3, 5, 5, 8, 10}
-	for _, tick = range recvOrder {
-		ev = sch.Next()
-		if ev.T != tick {
-			t.Log("Expected the next scheduled event to have T =", tick, "but got", ev.T)
+	recvOrder = []recvExpectation{
+		{2, 1},
+		{3, 1},
+		{5, 2},
+		{8, 1},
+		{10, 1},
+	}
+	for _, exp = range recvOrder {
+		events, tick = sch.NextTick()
+		if len(events) != exp.NumEvents {
+			t.Log("Expected", exp.NumEvents, "events at tick", tick, "but got", len(events))
 			t.Fail()
+		}
+		for _, ev = range events {
+			if ev.T != tick {
+				t.Log("Expected the next scheduled event to have T =", tick, "but got", ev.T)
+				t.Fail()
+			}
 		}
 	}
 }
