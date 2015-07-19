@@ -65,3 +65,7 @@ can answer questions like:
 
 If you want to tweak the way the simulation works, all you have to do
 is modify one of these building blocks.
+
+For an example of this exact simulation, check out:
+
+https://github.com/danslimmon/qsim/blob/master/grocery_test.go
