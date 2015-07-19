@@ -6,7 +6,14 @@ import (
 
 // A Processor is the piece of the queueing system that processes jobs.
 type Processor struct {
+	// The current job being processed. If the processor is idle, this
+	// will be nil.
 	CurrentJob *Job
+	// A unique identifier for the Processor. Useful for debugging, as it
+	// will be printed in debug output for events involving the Processor.
+	// The implementor must set this value if it's going to be used –
+	// otherwise it will be 0 (and thus not unique)
+	ProcessorId int
 
 	procTimeGenerator func(j *Job) int
 	// Callback lists

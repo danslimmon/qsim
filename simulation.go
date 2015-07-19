@@ -145,11 +145,14 @@ func RunSimulation(sys System, maxTicks int) (finalTick int) {
 	// Run the simulation.
 	for clock = 0; clock <= maxTicks; {
 		events, clock = sch.NextTick()
+		D()
+		D("BEGIN TICK", clock)
 		sys.BeforeEvents(clock)
 		for _, ev = range events {
 			ev.F(clock)
 		}
 		sys.AfterEvents(clock)
+		D("END TICK", clock)
 	}
 
 	return clock

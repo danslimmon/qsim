@@ -4,6 +4,11 @@ package qsim
 type Queue struct {
 	// The Jobs currently in the queue
 	Jobs []*Job
+	// A unique identifier for the Queue. Useful for debugging, as it
+	// will be printed in debug output for events involving the Queue.
+	// The implementor must set this value if it's going to be used –
+	// otherwise it will be 0 (and thus not unique)
+	QueueId int
 
 	// Callback lists
 	cbBeforeAppend []func(q *Queue, j *Job)

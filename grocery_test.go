@@ -1,9 +1,10 @@
 package qsim
 
 import (
-	"fmt"
+	"math"
 	"math/rand"
 	"testing"
+	"time"
 )
 
 // To run a simulation, you have to implement the System interface:
@@ -19,7 +20,7 @@ type GrocerySystem struct {
 	arrBeh ArrBeh
 
 	SumQueued    int
-	MaxQueued    int
+	SumCustomers int
 	SumTotalTime int
 	// Holds the list of Jobs that have finished since the last tick. We
 	// use this to keep track of the total time spent by customers in the
@@ -33,6 +34,7 @@ type GrocerySystem struct {
 // queues, processors, and behaviors.
 func (sys *GrocerySystem) Init() {
 	var i int
+	rand.Seed(time.Now().UnixNano())
 	// Customers arrive at the checkout line an average of every 30 seconds
 	// and the intervals between their arrivals are exponentially
 	// distributed.
@@ -47,7 +49,9 @@ func (sys *GrocerySystem) Init() {
 	sys.processors = make([]*Processor, 3)
 	for i = 0; i < 3; i++ {
 		sys.queues[i] = NewQueue()
+		sys.queues[i].QueueId = i
 		sys.processors[i] = NewProcessor()
+		sys.processors[i].ProcessorId = i
 		sys.processors[i].SetProcTimeGenerator(procTimeGenerator)
 		sys.processors[i].AfterFinish(func(p *Processor, j *Job) {
 			sys.FinishedJobs = append(sys.FinishedJobs, j)
@@ -84,24 +88,27 @@ func (sys *GrocerySystem) BeforeEvents(clock int) {
 	if clock == 0 {
 		return
 	}
-	// Add the current number of customers in the queue to sumQueued. We
-	// are going to use this sum to generate the average at the end of
-	// the simulation, so we need to weight it by the amount of time
-	// elapsed since the last time we collected data.
+	// Add the current number of customers in the system to
+	// currentCustomers. We are going to use this sum to generate the
+	// average at the end of the simulation, so we need to weight it
+	// by the amount of time elapsed since the last time we collected
+	// data.
+	currentCustomers := 0
 	currentlyQueued := 0
 	for _, q := range sys.queues {
+		currentCustomers += q.Length()
 		currentlyQueued += q.Length()
+	}
+	for _, p := range sys.processors {
+		if !p.IsIdle() {
+			currentCustomers++
+		}
 	}
 	// Add the current number of customers in the queue to SumQueued. We
 	// are going to use this sum to generate the average at the end of
 	// the simulation, so we need to weight it by the amount of time
 	// elapsed since the last time we collected data.
-	sys.SumQueued += (clock - sys.prevClock) * currentlyQueued
-	// Also keep track of the highest number of waiting customers we've
-	// seen.
-	if currentlyQueued > sys.MaxQueued {
-		sys.MaxQueued = currentlyQueued
-	}
+	sys.SumCustomers += (clock - sys.prevClock) * currentCustomers
 
 	sys.prevClock = clock
 }
@@ -140,16 +147,29 @@ func (sys *GrocerySystem) AfterEvents(clock int) {
 //   rounding error inherent in picking integer times from a continuous
 //   distribution.
 func TestGrocery(t *testing.T) {
-	var finalTick int
+	var finalTick, simTicks int
+	var avgOccupancy, avgArrivalRate, avgWait, precision float64
 
-	// Run the simulation for a day (86400 seconds)
+	// Run the simulation for a week
+	simTicks = 7 * 86400 * 1000
+	// Satisfy Little's Law to within 1 part in 1000
+	precision = .001
+
 	sys := &GrocerySystem{}
-	finalTick = RunSimulation(sys, 86400*1000)
+	finalTick = RunSimulation(sys, simTicks)
 
-	// Print our results out.
-	fmt.Printf("Simulation lasted %0.3f seconds\n", float64(finalTick)/1000.0)
-	fmt.Printf("Number of customers checked out: %d\n", sys.FinishedJobs)
-	fmt.Printf("Average number of queued customers: %0.2f\n", float64(sys.SumQueued)/float64(finalTick))
-	fmt.Printf("Highest number of queued customers: %d\n", sys.MaxQueued)
-	fmt.Printf("Average time spent in system: %0.2f seconds\n", float64(sys.SumTotalTime)/float64(sys.NumFinishedJobs)/1000.0)
+	// Make sure the simulation ran as long as it should have
+	if finalTick < simTicks {
+		t.Log("Simulation was supposed to run for", simTicks, "ticks but only ran for", finalTick)
+		t.Fail()
+	}
+
+	// Make sure Little's Law holds.
+	avgOccupancy = float64(sys.SumCustomers) / float64(finalTick)
+	avgWait = float64(sys.SumTotalTime) / float64(sys.NumFinishedJobs)
+	avgArrivalRate = float64(sys.NumFinishedJobs) / float64(finalTick)
+	if math.Abs(avgArrivalRate*avgWait-avgOccupancy) > precision*avgOccupancy {
+		t.Log("Little's law doesn't hold for GrocerySystem: average occupancy should be near", avgArrivalRate*avgWait, "but it is", avgOccupancy)
+		t.Fail()
+	}
 }

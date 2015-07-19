@@ -57,12 +57,14 @@ func (ab *ShortestQueueArrBeh) Assign(j *Job) Assignment {
 		if len(procs) == 1 {
 			procs[0].Start(j)
 			ass = Assignment{Type: "Processor", Processor: procs[0]}
+			D("Job", j.JobId, "arrived and was assigned to Processor", procs[0].ProcessorId)
 			ab.afterAssign(j, ass)
 		} else {
 			// There is more than one idle Processor, so we have to pick one at random.
 			i = rand.Intn(len(procs))
 			procs[i].Start(j)
 			ass = Assignment{Type: "Processor", Processor: procs[i]}
+			D("Job", j.JobId, "arrived and was assigned to Processor", procs[i].ProcessorId)
 			ab.afterAssign(j, ass)
 		}
 		return ass
@@ -80,6 +82,7 @@ func (ab *ShortestQueueArrBeh) Assign(j *Job) Assignment {
 	q = shortQueues[i]
 	ab.beforeAssign(j)
 	q.Append(j)
+	D("Job", j.JobId, "arrived and was assigned to Queue", q.QueueId)
 	ass = Assignment{Type: "Queue", Queue: q}
 	ab.afterAssign(j, ass)
 	return ass
