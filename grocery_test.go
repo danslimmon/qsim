@@ -121,7 +121,9 @@ func (sys *GrocerySystem) Processors() []*Processor {
 // in contrast with BeforeEvents, it runs after all the events for that
 // tick have occurred.
 //
-// In this example we don't use it.
+// In this example we used it to keep track of the average time Jobs
+// spend in the system (by calculating total Job-ticks and the number
+// of Jobs finished).
 func (sys *GrocerySystem) AfterEvents(clock int) {
 	var j *Job
 	if len(sys.FinishedJobs) != 0 {
