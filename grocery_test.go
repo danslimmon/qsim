@@ -19,7 +19,6 @@ type GrocerySystem struct {
 	// The system's arrival behavior
 	arrBeh ArrBeh
 
-	SumQueued    int
 	SumCustomers int
 	SumTotalTime int
 	// Holds the list of Jobs that have finished since the last tick. We
@@ -103,9 +102,9 @@ func (sys *GrocerySystem) BeforeEvents(clock int) {
 			currentCustomers++
 		}
 	}
-	// Add the current number of customers in the queue to SumQueued. We
-	// are going to use this sum to generate the average at the end of
-	// the simulation, so we need to weight it by the amount of time
+	// Add the current number of customers in the queue to SumCustomers.
+	// We are going to use this sum to generate the average at the end
+	// of the simulation, so we need to weight it by the amount of time
 	// elapsed since the last time we collected data.
 	sys.SumCustomers += (clock - sys.prevClock) * currentCustomers
 
