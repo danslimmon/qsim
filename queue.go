@@ -85,7 +85,9 @@ func (q *Queue) beforeAppend(j *Job) {
 // appended to the queue.
 //
 // The callback will be passed the queue itself and the job that was just
-// appended.
+// appended. If Append is called when the Queue's length is not below
+// MaxLength, AfterAppend callbacks will still run but they'll be passed
+// j=nil.
 func (q *Queue) AfterAppend(f func(q *Queue, j *Job)) {
 	q.cbAfterAppend = append(q.cbAfterAppend, f)
 }
