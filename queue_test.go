@@ -25,7 +25,8 @@ func TestQueueAppend(t *testing.T) {
 		t.Log("Nineteenth element not found at index 19")
 		t.Fail()
 	}
-	if len(q.Jobs) != 20 {
+	if q.Length() != 20 {
+		t.Log("Wrong number of Jobs made it into Queue")
 		t.Fail()
 	}
 }
@@ -263,6 +264,108 @@ func TestQueueAfterShift(t *testing.T) {
 	}
 	if qLen != 0 {
 		t.Log("Expected AfterShift callback to set qLen=0")
+		t.Fail()
+	}
+}
+
+// Tests queue insertion with a MaxLength
+func TestQueueAppendWithMaxLength(t *testing.T) {
+	t.Parallel()
+	var q *Queue
+	var i int
+
+	q = NewQueue()
+	q.MaxLength = 3
+
+	for i := 0; i < 3; i++ {
+		q.Append(NewJob(0))
+	}
+	if q.Length() != 3 {
+		t.Log("Queue with MaxLength didn't accept all the Jobs it should have")
+		t.Fail()
+	}
+
+	q.Append(NewJob(0))
+	if q.Length() > 3 {
+		t.Log("Queue grew longer than its MaxLength")
+		t.Fail()
+	}
+
+	// When we lower the MaxLength of a Queue, we expect it to keep its current
+	// contents but not accept new Jobs until it's below that length.
+	q.MaxLength = 2
+	q.Append(NewJob(0))
+	if q.Length() > 3 {
+		t.Log("Queue accepted new Job after its MaxLength was lowered")
+		t.Fail()
+	}
+	if q.Length() < 3 {
+		t.Log("Queue dropped Jobs when its MaxLength was lowered")
+		t.Fail()
+	}
+
+	q.Shift()
+	q.Shift()
+	if q.Length() > 1 {
+		t.Log("Failed to shift Jobs out of Queue after its MaxLength was lowered")
+		t.Fail()
+	}
+	q.Append(NewJob(0))
+	q.Append(NewJob(0))
+	if q.Length() < 2 {
+		t.Log("Failed to append Jobs up to Queue's new MaxLength")
+		t.Fail()
+	}
+	if q.Length() > 2 {
+		t.Log("Queue accepted Jobs beyond its new MaxLength")
+		t.Fail()
+	}
+
+	// Now when we raise MaxLength we should be able to append another Job
+	q.MaxLength = 3
+	q.Append(NewJob(0))
+	if q.Length() < 3 {
+		t.Log("Failed to append Job after raising Queue's MaxLength")
+		t.Fail()
+	}
+
+	// If we set MaxLength to -1, we should be able to append as many Jobs
+	// as we want.
+	q.MaxLength = -1
+	for i = 0; i < 30; i++ {
+		q.Append(NewJob(0))
+	}
+	if q.Length() != 33 {
+		t.Log("Failed to add a bunch more Jobs after setting Queue to unlimited MaxLength")
+		t.Fail()
+	}
+}
+
+// Tests the behavior of AfterAppend when appending against a MaxLength
+func TestQueueAfterAppendWithMaxLength(t *testing.T) {
+	t.Parallel()
+	var q *Queue
+	var j, receivedJob *Job
+	q = NewQueue()
+	q.MaxLength = 1
+
+	cbAfterAppend := func(cbQueue *Queue, cbJob *Job) {
+		receivedJob = cbJob
+	}
+	q.AfterAppend(cbAfterAppend)
+
+	// Test the normal behavior, before we reach MaxLength
+	j = NewJob(0)
+	q.Append(j)
+	if receivedJob != j {
+		t.Log("AfterAppend got wrong Job with MaxLength set; expected", j, "but got", receivedJob)
+		t.Fail()
+	}
+
+	// If we try to append at MaxLength, the callback should get <nil> as its Job
+	q.Append(NewJob(0))
+	if receivedJob != nil {
+		t.Log("AfterAppend at MaxLength should get passed nil Job, but got", receivedJob)
 		t.Fail()
 	}
 }

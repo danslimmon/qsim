@@ -9,6 +9,16 @@ type Queue struct {
 	// The implementor must set this value if it's going to be used –
 	// otherwise it will be 0 (and thus not unique)
 	QueueId int
+	// The maximum length of the Queue. The default, -1, allows
+	// arbitrarily many events to be appended. At any other value
+	// (including 0), Append() calls will still succeed but the Job
+	// will be discarded instead of appended.
+	//
+	// MaxLength may be raised during the course of a simulation. It
+	// may also be lowered, with the effect that the Jobs currently in
+	// the Queue will remain there, but new Jobs won't be appended
+	// until the Queue's length is back under MaxLength.
+	MaxLength int
 
 	// Callback lists
 	cbBeforeAppend []func(q *Queue, j *Job)
@@ -20,8 +30,12 @@ type Queue struct {
 // Append adds a Job to the tail of the queue.
 func (q *Queue) Append(j *Job) {
 	q.beforeAppend(j)
-	q.Jobs = append(q.Jobs, j)
-	q.afterAppend(j)
+	if q.MaxLength == -1 || q.Length() < q.MaxLength {
+		q.Jobs = append(q.Jobs, j)
+		q.afterAppend(j)
+	} else {
+		q.afterAppend(nil)
+	}
 }
 
 // Length returns the current number of jobs in the queue.
@@ -115,5 +129,6 @@ func (q *Queue) afterShift(j *Job) {
 func NewQueue() (q *Queue) {
 	q = new(Queue)
 	q.Jobs = make([]*Job, 0)
+	q.MaxLength = -1
 	return q
 }
