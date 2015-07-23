@@ -69,3 +69,7 @@ is modify one of these building blocks.
 For an example of this exact simulation, check out:
 
 https://github.com/danslimmon/qsim/blob/master/grocery_test.go
+
+## Another example: porta-potties
+
+https://danslimmon.wordpress.com/2015/07/23/minding-your-pees-and-queues/
