@@ -24,7 +24,8 @@ type PortaPottySystem struct {
 	// The system's arrival behavior
 	arrBeh qsim.ArrBeh
 
-	StrategizerWaits, NonStrategizerWaits []int
+	SumStrategizerWaits, SumNonStrategizerWaits int
+	NumStrategizers, NumNonStrategizers         int
 
 	statsStarted bool
 	finishedJobs []*qsim.Job
@@ -162,9 +163,11 @@ func (sys *PortaPottySystem) AfterEvents(clock int) {
 
 	for _, j = range sys.finishedJobs {
 		if j.IntAttrs["use_strategy"] == 1 {
-			sys.StrategizerWaits = append(sys.StrategizerWaits, clock-j.ArrTime)
+			sys.SumStrategizerWaits += clock - j.ArrTime
+			sys.NumStrategizers++
 		} else {
-			sys.NonStrategizerWaits = append(sys.NonStrategizerWaits, clock-j.ArrTime)
+			sys.SumNonStrategizerWaits += clock - j.ArrTime
+			sys.NumNonStrategizers++
 		}
 	}
 	sys.finishedJobs = sys.finishedJobs[:0]
@@ -241,51 +244,53 @@ func (sys *PortaPottySystem) strategicAssignment() *qsim.Assignment {
 //   distribution.
 func SimPortaPotty() {
 	var simTicks, simsPerProb int
-	//var probStep float64
+	var probStep float64
 	type simResult struct {
-		Done                bool
-		StrategizerWaits    []int
-		NonStrategizerWaits []int
+		Done                                        bool
+		PStrategy                                   float64
+		SumStrategizerWaits, SumNonStrategizerWaits int
+		NumStrategizers, NumNonStrategizers         int
 	}
 	var ch chan simResult
-	//var cpu, nCpu, nProbs, probsPerCpu, routinesDone int
-	var cpu, nCpu, routinesDone int
+	var cpu, nCpu, nProbs, probsPerCpu, routinesDone int
 
-	fmt.Println("useStrat,wait")
+	fmt.Println("pStrategy,avgStratWait,avgNonStratWait,avgWait")
 
-	nCpu = 4
-	//nProbs = 100
-	//probStep = .01
-	//probsPerCpu = nProbs / nCpu
+	nCpu = 5
+	nProbs = 100
+	probStep = .01
+	probsPerCpu = nProbs / nCpu
 	// Run each simulation for 14 days
-	simTicks = 14 * 86400 * 1000
-	simsPerProb = 10
+	simTicks = 14* 86400 * 1000
+	simsPerProb = 40
 
 	ch = make(chan simResult)
 	for cpu = 0; cpu < nCpu; cpu++ {
 		go func(cpu int) {
-			//			var i int
-			//			for i = cpu*probsPerCpu + 1; i <= (cpu+1)*probsPerCpu; i++ {
-			var pStrategy float64
-			var rslt simResult
-			//pStrategy = probStep * float64(i)
-			pStrategy = .01
-			rslt = simResult{
-				Done: false,
-			}
-			var j int
-			for j = 0; j < simsPerProb; j++ {
-				sys := &PortaPottySystem{
-					PStrategy:  pStrategy,
-					StatsStart: 200000000,
+			var i int
+			for i = cpu*probsPerCpu + 1; i <= (cpu+1)*probsPerCpu; i++ {
+				var pStrategy float64
+				var rslt simResult
+				pStrategy = probStep * float64(i)
+				rslt = simResult{
+					Done:                   false,
+					PStrategy:              pStrategy,
 				}
-				qsim.RunSimulation(sys, simTicks)
+				var j int
+				for j = 0; j < simsPerProb; j++ {
+					sys := &PortaPottySystem{
+						PStrategy:  pStrategy,
+						StatsStart: 200000000,
+					}
+					qsim.RunSimulation(sys, simTicks)
 
-				rslt.StrategizerWaits = append(rslt.StrategizerWaits, sys.StrategizerWaits...)
-				rslt.NonStrategizerWaits = append(rslt.NonStrategizerWaits, sys.NonStrategizerWaits...)
+					rslt.SumStrategizerWaits += sys.SumStrategizerWaits
+					rslt.SumNonStrategizerWaits += sys.SumNonStrategizerWaits
+					rslt.NumStrategizers += sys.NumStrategizers
+					rslt.NumNonStrategizers += sys.NumNonStrategizers
+				}
+				ch <- rslt
 			}
-			ch <- rslt
-			//			}
 			ch <- simResult{Done: true}
 		}(cpu)
 	}
@@ -297,14 +302,10 @@ func SimPortaPotty() {
 			routinesDone++
 			continue
 		}
-		for i := 0; i < len(rslt.StrategizerWaits); i++ {
-			fmt.Printf("%s,%d\n", "Using Strategy", rslt.StrategizerWaits[i])
-		}
-		for i := 0; i < len(rslt.NonStrategizerWaits); i++ {
-			if rand.Intn(100) == 0 {
-				fmt.Printf("%s,%d\n", "Not Using Strategy", rslt.NonStrategizerWaits[i])
-			}
-		}
+		avgStrategizerWait := float64(rslt.SumStrategizerWaits) / float64(rslt.NumStrategizers)
+		avgNonStrategizerWait := float64(rslt.SumNonStrategizerWaits) / float64(rslt.NumNonStrategizers)
+		avgWait := float64(rslt.SumStrategizerWaits + rslt.SumNonStrategizerWaits) / float64(rslt.NumStrategizers + rslt.NumNonStrategizers)
+		fmt.Printf("%0.2f,%0.2f,%0.2f,%02.f\n", rslt.PStrategy, avgStrategizerWait/1000.0, avgNonStrategizerWait/1000.0, avgWait/1000.0)
 	}
 }
 
