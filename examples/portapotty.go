@@ -11,6 +11,9 @@ import (
 type PortaPottySystem struct {
 	// The probability of a given person using the strategy
 	PStrategy float64
+	// When to start capturing stats. We use this to avoid sampling the
+	// initial ramp-up of the system.
+	StatsStart int
 
 	// The list of all queues in the system.
 	queues []*qsim.Queue
@@ -24,6 +27,7 @@ type PortaPottySystem struct {
 	SumStrategizerWaits, SumNonStrategizerWaits int
 	NumStrategizers, NumNonStrategizers         int
 
+	statsStarted bool
 	finishedJobs []*qsim.Job
 	prevClock    int
 }
@@ -64,6 +68,9 @@ func (sys *PortaPottySystem) Init() {
 	// calculations on those Jobs after each tick in AfterEvents.
 	for i, _ = range sys.processors {
 		sys.processors[i].AfterFinish(func(p *qsim.Processor, j *qsim.Job) {
+			if !sys.statsStarted {
+				return
+			}
 			sys.finishedJobs = append(sys.finishedJobs, j)
 		})
 	}
@@ -115,16 +122,31 @@ func (sys *PortaPottySystem) ArrBeh() qsim.ArrBeh {
 	return sys.arrBeh
 }
 
-// BeforeEvents runs at every tick when a simulation event happens (a
-// Job arrives in the system, or a Job finishes processing and leaves
-// the system). BeforeEvents is called after all the events for the tick
-// in question have finished.
-func (sys *PortaPottySystem) BeforeEvents(clock int) {}
+// Occupancy returns the total number of Jobs in the system.
+func (sys *PortaPottySystem) Occupancy() (occ int) {
+	var p *qsim.Processor
+	var q *qsim.Queue
+	for _, p = range sys.processors {
+		if !p.IsIdle() {
+			occ++
+		}
+	}
+	for _, q = range sys.queues {
+		occ += q.Length()
+	}
+	return
+}
 
 // Processors returns the list of Processors in the system.
 func (sys *PortaPottySystem) Processors() []*qsim.Processor {
 	return sys.processors
 }
+
+// BeforeEvents runs at every tick when a simulation event happens (a
+// Job arrives in the system, or a Job finishes processing and leaves
+// the system). BeforeEvents is called after all the events for the tick
+// in question have finished.
+func (sys *PortaPottySystem) BeforeEvents(clock int) {}
 
 // AfterEvents runs at every tick when a simulation event happens, but
 // in contrast with BeforeEvents, it runs after all the events for that
@@ -132,10 +154,12 @@ func (sys *PortaPottySystem) Processors() []*qsim.Processor {
 func (sys *PortaPottySystem) AfterEvents(clock int) {
 	var j *qsim.Job
 
-	// Ignore the initial tick
-	if clock == 0 {
+	// Ignore the initial transient behavior of the system
+	if clock < sys.StatsStart {
+		sys.prevClock = clock
 		return
 	}
+	sys.statsStarted = true
 
 	for _, j = range sys.finishedJobs {
 		if j.IntAttrs["use_strategy"] == 1 {
@@ -220,20 +244,62 @@ func (sys *PortaPottySystem) strategicAssignment() *qsim.Assignment {
 //   distribution.
 func SimPortaPotty() {
 	var simTicks int
-	var pStrategy float64
+	var probStep float64
+	type simResult struct {
+		Done                                        bool
+		PStrategy                                   float64
+		SumStrategizerWaits, SumNonStrategizerWaits int
+		NumStrategizers, NumNonStrategizers         int
+	}
+	var ch chan simResult
+	var rslt simResult
+	var cpu, nCpu, nProbs, probsPerCpu, routinesDone int
 
 	fmt.Println("pStrategy,avgStratWait,avgNonStratWait")
-	for pStrategy = .01; pStrategy <= 1.0; pStrategy += .01 {
-		// Run each simulation for 30 days
-		simTicks = 30 * 86400 * 1000
-		sys := &PortaPottySystem{
-			PStrategy: pStrategy,
-		}
-		qsim.RunSimulation(sys, simTicks)
 
-		avgStrategizerWait := float64(sys.SumStrategizerWaits) / float64(sys.NumStrategizers)
-		avgNonStrategizerWait := float64(sys.SumNonStrategizerWaits) / float64(sys.NumNonStrategizers)
-		fmt.Printf("%0.2f,%0.2f,%0.2f\n", pStrategy, avgStrategizerWait/1000.0, avgNonStrategizerWait/1000.0)
+	// My laptop has 4 cores, so why not use 'em?
+	nCpu = 1
+	nProbs = 100
+	probStep = .01
+	probsPerCpu = nProbs / nCpu
+	// Run each simulation for 30 days
+	simTicks = 30 * 86400 * 1000
+
+	ch = make(chan simResult)
+	for cpu = 0; cpu < nCpu; cpu++ {
+		go func(cpu int) {
+			var i int
+			var pStrategy float64
+			for i = cpu*probsPerCpu + 1; i <= (cpu+1)*probsPerCpu; i++ {
+				pStrategy = probStep * float64(i)
+				sys := &PortaPottySystem{
+					PStrategy:  pStrategy,
+					StatsStart: 200000000,
+				}
+				qsim.RunSimulation(sys, simTicks)
+
+				ch <- simResult{
+					Done:                   false,
+					PStrategy:              pStrategy,
+					SumStrategizerWaits:    sys.SumStrategizerWaits,
+					SumNonStrategizerWaits: sys.SumNonStrategizerWaits,
+					NumStrategizers:        sys.NumStrategizers,
+					NumNonStrategizers:     sys.NumNonStrategizers,
+				}
+			}
+			ch <- simResult{Done: true}
+		}(cpu)
+	}
+
+	for routinesDone < 4 {
+		rslt = <-ch
+		if rslt.Done {
+			routinesDone++
+			continue
+		}
+		avgStrategizerWait := float64(rslt.SumStrategizerWaits) / float64(rslt.NumStrategizers)
+		avgNonStrategizerWait := float64(rslt.SumNonStrategizerWaits) / float64(rslt.NumNonStrategizers)
+		fmt.Printf("%0.2f,%0.2f,%0.2f\n", rslt.PStrategy, avgStrategizerWait/1000.0, avgNonStrategizerWait/1000.0)
 	}
 }
 
