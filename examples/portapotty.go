@@ -243,7 +243,7 @@ func (sys *PortaPottySystem) strategicAssignment() *qsim.Assignment {
 //   rounding error inherent in picking integer times from a continuous
 //   distribution.
 func SimPortaPotty() {
-	var simTicks int
+	var simTicks, simsPerProb int
 	var probStep float64
 	type simResult struct {
 		Done                                        bool
@@ -252,46 +252,51 @@ func SimPortaPotty() {
 		NumStrategizers, NumNonStrategizers         int
 	}
 	var ch chan simResult
-	var rslt simResult
 	var cpu, nCpu, nProbs, probsPerCpu, routinesDone int
 
-	fmt.Println("pStrategy,avgStratWait,avgNonStratWait")
+	fmt.Println("pStrategy,avgStratWait,avgNonStratWait,avgWait")
 
-	// My laptop has 4 cores, so why not use 'em?
-	nCpu = 1
+	nCpu = 5
 	nProbs = 100
 	probStep = .01
 	probsPerCpu = nProbs / nCpu
-	// Run each simulation for 30 days
-	simTicks = 30 * 86400 * 1000
+	// Run each simulation for 14 days
+	simTicks = 14* 86400 * 1000
+	simsPerProb = 40
 
 	ch = make(chan simResult)
 	for cpu = 0; cpu < nCpu; cpu++ {
 		go func(cpu int) {
 			var i int
-			var pStrategy float64
 			for i = cpu*probsPerCpu + 1; i <= (cpu+1)*probsPerCpu; i++ {
+				var pStrategy float64
+				var rslt simResult
 				pStrategy = probStep * float64(i)
-				sys := &PortaPottySystem{
-					PStrategy:  pStrategy,
-					StatsStart: 200000000,
-				}
-				qsim.RunSimulation(sys, simTicks)
-
-				ch <- simResult{
+				rslt = simResult{
 					Done:                   false,
 					PStrategy:              pStrategy,
-					SumStrategizerWaits:    sys.SumStrategizerWaits,
-					SumNonStrategizerWaits: sys.SumNonStrategizerWaits,
-					NumStrategizers:        sys.NumStrategizers,
-					NumNonStrategizers:     sys.NumNonStrategizers,
 				}
+				var j int
+				for j = 0; j < simsPerProb; j++ {
+					sys := &PortaPottySystem{
+						PStrategy:  pStrategy,
+						StatsStart: 200000000,
+					}
+					qsim.RunSimulation(sys, simTicks)
+
+					rslt.SumStrategizerWaits += sys.SumStrategizerWaits
+					rslt.SumNonStrategizerWaits += sys.SumNonStrategizerWaits
+					rslt.NumStrategizers += sys.NumStrategizers
+					rslt.NumNonStrategizers += sys.NumNonStrategizers
+				}
+				ch <- rslt
 			}
 			ch <- simResult{Done: true}
 		}(cpu)
 	}
 
-	for routinesDone < 4 {
+	for routinesDone < nCpu {
+		var rslt simResult
 		rslt = <-ch
 		if rslt.Done {
 			routinesDone++
@@ -299,7 +304,8 @@ func SimPortaPotty() {
 		}
 		avgStrategizerWait := float64(rslt.SumStrategizerWaits) / float64(rslt.NumStrategizers)
 		avgNonStrategizerWait := float64(rslt.SumNonStrategizerWaits) / float64(rslt.NumNonStrategizers)
-		fmt.Printf("%0.2f,%0.2f,%0.2f\n", rslt.PStrategy, avgStrategizerWait/1000.0, avgNonStrategizerWait/1000.0)
+		avgWait := float64(rslt.SumStrategizerWaits + rslt.SumNonStrategizerWaits) / float64(rslt.NumStrategizers + rslt.NumNonStrategizers)
+		fmt.Printf("%0.2f,%0.2f,%0.2f,%02.f\n", rslt.PStrategy, avgStrategizerWait/1000.0, avgNonStrategizerWait/1000.0, avgWait/1000.0)
 	}
 }
 
