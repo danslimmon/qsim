@@ -134,9 +134,10 @@ func TestShortestQueueArrBehBeforeAssign(t *testing.T) {
 	}
 	ab = NewShortestQueueArrBeh(queues, procs)
 
-	cbBeforeAssign := func(cbArrBeh ArrBeh, cbJob *Job) {
+	cbBeforeAssign := func(cbArrBeh ArrBeh, cbJob *Job) *Assignment {
 		receivedArrBeh = cbArrBeh
 		receivedJob = cbJob
+		return nil
 	}
 	ab.BeforeAssign(cbBeforeAssign)
 
@@ -149,6 +150,56 @@ func TestShortestQueueArrBehBeforeAssign(t *testing.T) {
 	}
 	if receivedJob != j {
 		t.Log("BeforeAssign callback ran with wrong Job or didn't run")
+		t.Fail()
+	}
+}
+
+// Makes sure that BeforeAssign callbacks can override the ArrBeh's assignment logic.
+func TestShortestQueueArrBehBeforeAssignWithOverride(t *testing.T) {
+	t.Parallel()
+	var queues []*Queue
+	var procs []*Processor
+	var j, receivedJob *Job
+	var ab ArrBeh
+	var i int
+
+	queues = make([]*Queue, 3)
+	for i = 0; i < 3; i++ {
+		queues[i] = NewQueue()
+		queues[i].QueueId = i
+	}
+	procs = make([]*Processor, 3)
+	for i = 0; i < 3; i++ {
+		procs[i] = NewProcessor(simplePtg)
+		procs[i].ProcessorId = i
+	}
+	ab = NewShortestQueueArrBeh(queues, procs)
+
+	// We create multiple BeforeAssign callbacks to test that the last one to
+	// return a non-nil Assignment pointer takes precedence.
+	cbBeforeAssignNil := func(cbArrBeh ArrBeh, cbJob *Job) *Assignment { return nil }
+	cbBeforeAssignQueue0 := func(cbArrBeh ArrBeh, cbJob *Job) *Assignment {
+		return &Assignment{
+			Type:  "Queue",
+			Queue: queues[0],
+		}
+	}
+	cbBeforeAssignProcessor1 := func(cbArrBeh ArrBeh, cbJob *Job) *Assignment {
+		return &Assignment{
+			Type:      "Processor",
+			Processor: procs[1],
+		}
+	}
+	ab.BeforeAssign(cbBeforeAssignNil)
+	ab.BeforeAssign(cbBeforeAssignProcessor1)
+	ab.BeforeAssign(cbBeforeAssignQueue0)
+	ab.BeforeAssign(cbBeforeAssignNil)
+
+	j = NewJob(0)
+	ab.Assign(j)
+
+	if receivedJob, _ = queues[0].Shift(); receivedJob != j {
+		t.Log("Job was not assigned to Queue specified by BeforeAssign callback")
 		t.Fail()
 	}
 }

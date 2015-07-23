@@ -8,7 +8,7 @@ import (
 // An ArrBeh ("arrival behavior") assigns new jobs to queues or processors.
 type ArrBeh interface {
 	Assign(j *Job) Assignment
-	BeforeAssign(f func(ab ArrBeh, j *Job))
+	BeforeAssign(f func(ab ArrBeh, j *Job) *Assignment)
 	AfterAssign(f func(ab ArrBeh, j *Job, ass Assignment))
 }
 
@@ -25,14 +25,14 @@ type ArrBeh interface {
 // an empty aisle you go straight there; otherwise you find the shortest
 // queue and join it.
 type ShortestQueueArrBeh struct {
-	// queues contains all the queues known to us.
+	// Queues contains all the queues known to us.
 	Queues []*Queue
-	// processors keeps track of which Processors are idle. A Processor
+	// IdleProcessors keeps track of which Processors are idle. A Processor
 	// is a key in this map iff it is idle.
-	Processors map[*Processor]bool
+	IdleProcessors map[*Processor]bool
 
 	// Callback lists
-	cbBeforeAssign []func(ab ArrBeh, j *Job)
+	cbBeforeAssign []func(ab ArrBeh, j *Job) *Assignment
 	cbAfterAssign  []func(ab ArrBeh, j *Job, ass Assignment)
 }
 
@@ -46,27 +46,27 @@ func (ab *ShortestQueueArrBeh) Assign(j *Job) Assignment {
 	var shortQueues []*Queue
 	var i, smallestLength int
 	var ass Assignment
+	var assPtr *Assignment
 
-	if len(ab.Processors) >= 1 {
+	// Allow beforeAssign callback to override the assignment logic
+	assPtr = ab.beforeAssign(j)
+	if assPtr != nil {
+		ab.assign(j, *assPtr)
+		ab.afterAssign(j, *assPtr)
+		return *assPtr
+	}
+
+	// Assign to an idle processor if there is at least one
+	if len(ab.IdleProcessors) >= 1 {
 		procs = make([]*Processor, 0)
-		for proc, _ = range ab.Processors {
+		for proc, _ = range ab.IdleProcessors {
 			procs = append(procs, proc)
 		}
 
-		ab.beforeAssign(j)
-		if len(procs) == 1 {
-			procs[0].Start(j)
-			ass = Assignment{Type: "Processor", Processor: procs[0]}
-			D("Job", j.JobId, "arrived and was assigned to Processor", procs[0].ProcessorId)
-			ab.afterAssign(j, ass)
-		} else {
-			// There is more than one idle Processor, so we have to pick one at random.
-			i = rand.Intn(len(procs))
-			procs[i].Start(j)
-			ass = Assignment{Type: "Processor", Processor: procs[i]}
-			D("Job", j.JobId, "arrived and was assigned to Processor", procs[i].ProcessorId)
-			ab.afterAssign(j, ass)
-		}
+		i = rand.Intn(len(procs))
+		ass = Assignment{Type: "Processor", Processor: procs[i]}
+		ab.assign(j, ass)
+		ab.afterAssign(j, ass)
 		return ass
 	}
 
@@ -77,27 +77,53 @@ func (ab *ShortestQueueArrBeh) Assign(j *Job) Assignment {
 	for i = 0; i < len(ab.Queues) && ab.Queues[i].Length() == smallestLength; i++ {
 		shortQueues = append(shortQueues, ab.Queues[i])
 	}
+
 	// Pick a random element from the list of queues that have the shortest length.
 	i = rand.Intn(len(shortQueues))
 	q = shortQueues[i]
 	ab.beforeAssign(j)
-	q.Append(j)
-	D("Job", j.JobId, "arrived and was assigned to Queue", q.QueueId)
 	ass = Assignment{Type: "Queue", Queue: q}
+	ab.assign(j, ass)
 	ab.afterAssign(j, ass)
 	return ass
+}
+
+// assign does the appropriate thing with the Job given an Assignment.
+func (ab *ShortestQueueArrBeh) assign(j *Job, ass Assignment) {
+	switch ass.Type {
+	case "Processor":
+		ass.Processor.Start(j)
+		D("Job", j.JobId, "arrived and was assigned to Processor", ass.Processor)
+	case "Queue":
+		ass.Queue.Append(j)
+		D("Job", j.JobId, "arrived and was assigned to Queue", ass.Queue)
+	default:
+		panic("Tried to process Assignment with unknown Type '" + ass.Type + "'")
+	}
 }
 
 // BeforeAssign adds a callback to run immediately before the Arrival Behavior
 // assigns a job to a Queue or Processor. This callback is passed the ArrBeh
 // itself as well as the Job that's about to be assigned.
-func (ab *ShortestQueueArrBeh) BeforeAssign(f func(ArrBeh, *Job)) {
+//
+// The callback may return an Assignment pointer. If it does so, this Assignment
+// will override the ArrBeh's assignment logic. Otherwise, if the callback
+// returns <nil>, the assignment will proceed normally.
+//
+// If there are multiple BeforeAssign callbacks that return non-nil Assignment
+// pointers, the callback most recently created wins.
+func (ab *ShortestQueueArrBeh) BeforeAssign(f func(ArrBeh, *Job) *Assignment) {
 	ab.cbBeforeAssign = append(ab.cbBeforeAssign, f)
 }
-func (ab *ShortestQueueArrBeh) beforeAssign(j *Job) {
+func (ab *ShortestQueueArrBeh) beforeAssign(j *Job) *Assignment {
+	var assPtr, newAssPtr *Assignment
 	for _, cb := range ab.cbBeforeAssign {
-		cb(ab, j)
+		newAssPtr = cb(ab, j)
+		if newAssPtr != nil {
+			assPtr = newAssPtr
+		}
 	}
+	return assPtr
 }
 
 // BeforeAssign adds a callback to run immediately after the Arrival Behavior
@@ -121,19 +147,19 @@ func NewShortestQueueArrBeh(queues []*Queue, procs []*Processor) ArrBeh {
 
 	ab = new(ShortestQueueArrBeh)
 	ab.Queues = queues
-	ab.Processors = make(map[*Processor]bool)
+	ab.IdleProcessors = make(map[*Processor]bool)
 	for _, p = range procs {
 		if p.IsIdle() {
-			ab.Processors[p] = true
+			ab.IdleProcessors[p] = true
 		}
 	}
 
-	// These callbacks keep ab.Processors up to date.
+	// These callbacks keep ab.IdleProcessors up to date.
 	afterStart := func(p *Processor, j *Job, procTime int) {
-		delete(ab.Processors, p)
+		delete(ab.IdleProcessors, p)
 	}
 	afterFinish := func(p *Processor, j *Job) {
-		ab.Processors[p] = true
+		ab.IdleProcessors[p] = true
 	}
 	for _, p = range procs {
 		p.AfterStart(afterStart)
