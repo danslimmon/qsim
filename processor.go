@@ -54,7 +54,11 @@ func (p *Processor) Start(j *Job) (procTime int, err error) {
 	}
 	p.CurrentJob = j
 	procTime = p.procTimeGenerator(j)
-	p.afterStart(j, procTime)
+	if procTime == 0 {
+		p.Finish()
+	} else {
+		p.afterStart(j, procTime)
+	}
 	return procTime, nil
 }
 
