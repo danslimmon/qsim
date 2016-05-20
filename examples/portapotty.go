@@ -261,7 +261,7 @@ func SimPortaPotty() {
 	probStep = .01
 	probsPerCpu = nProbs / nCpu
 	// Run each simulation for 14 days
-	simTicks = 14* 86400 * 1000
+	simTicks = 14 * 86400 * 1000
 	simsPerProb = 40
 
 	ch = make(chan simResult)
@@ -273,8 +273,8 @@ func SimPortaPotty() {
 				var rslt simResult
 				pStrategy = probStep * float64(i)
 				rslt = simResult{
-					Done:                   false,
-					PStrategy:              pStrategy,
+					Done:      false,
+					PStrategy: pStrategy,
 				}
 				var j int
 				for j = 0; j < simsPerProb; j++ {
@@ -304,7 +304,7 @@ func SimPortaPotty() {
 		}
 		avgStrategizerWait := float64(rslt.SumStrategizerWaits) / float64(rslt.NumStrategizers)
 		avgNonStrategizerWait := float64(rslt.SumNonStrategizerWaits) / float64(rslt.NumNonStrategizers)
-		avgWait := float64(rslt.SumStrategizerWaits + rslt.SumNonStrategizerWaits) / float64(rslt.NumStrategizers + rslt.NumNonStrategizers)
+		avgWait := float64(rslt.SumStrategizerWaits+rslt.SumNonStrategizerWaits) / float64(rslt.NumStrategizers+rslt.NumNonStrategizers)
 		fmt.Printf("%0.2f,%0.2f,%0.2f,%02.f\n", rslt.PStrategy, avgStrategizerWait/1000.0, avgNonStrategizerWait/1000.0, avgWait/1000.0)
 	}
 }
