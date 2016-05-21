@@ -80,16 +80,16 @@ func (sys *PortaPottySystem) Init() {
 	// long.
 	sys.arrProc = qsim.NewPoissonArrProc((maleMean + femaleMean) / 2.0 / 15.0)
 	// Assign a gender to each incoming person.
-	sys.arrProc.AfterArrive(func(ap qsim.ArrProc, j *qsim.Job, interval int) {
+	sys.arrProc.AfterArrive(func(ap qsim.ArrProc, jobs []*qsim.Job, interval int) {
 		sexes := []string{"male", "female"}
-		j.StrAttrs["sex"] = sexes[rand.Intn(2)]
+		jobs[0].StrAttrs["sex"] = sexes[rand.Intn(2)]
 	})
 	// Occasionally pick a person to use the strategy.
-	sys.arrProc.AfterArrive(func(ap qsim.ArrProc, j *qsim.Job, interval int) {
+	sys.arrProc.AfterArrive(func(ap qsim.ArrProc, jobs []*qsim.Job, interval int) {
 		if rand.Float64() < sys.PStrategy {
-			j.IntAttrs["use_strategy"] = 1
+			jobs[0].IntAttrs["use_strategy"] = 1
 		} else {
-			j.IntAttrs["use_strategy"] = 0
+			jobs[0].IntAttrs["use_strategy"] = 0
 		}
 	})
 
