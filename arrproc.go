@@ -6,9 +6,9 @@ import (
 
 // An ArrProc (short for "arrival process") generates new Jobs at some interval.
 type ArrProc interface {
-	Arrive(clock int) (j *Job, interval int)
+	Arrive(clock int) (jobs []*Job, interval int)
 	BeforeArrive(f func(ap ArrProc))
-	AfterArrive(f func(ap ArrProc, j *Job, interval int))
+	AfterArrive(f func(ap ArrProc, jobs []*Job, interval int))
 }
 
 // ConstantArrProc generates jobs at a constant interval.
@@ -20,18 +20,18 @@ type ConstantArrProc struct {
 
 	// Callback lists
 	cbBeforeArrive []func(ap ArrProc)
-	cbAfterArrive  []func(ap ArrProc, j *Job, interval int)
+	cbAfterArrive  []func(ap ArrProc, jobs []*Job, interval int)
 }
 
 // Arrive generates a Job and returns the constant value of Interval as the
 // number of ticks that will elapse before the next arrival.
 //
 // clock is the current simulation clock time.
-func (ap *ConstantArrProc) Arrive(clock int) (j *Job, interval int) {
+func (ap *ConstantArrProc) Arrive(clock int) (jobs []*Job, interval int) {
 	ap.beforeArrive()
-	j = NewJob(clock)
+	jobs = append(jobs, NewJob(clock))
 	interval = ap.Interval
-	ap.afterArrive(j, interval)
+	ap.afterArrive(jobs, interval)
 	return
 }
 
@@ -47,14 +47,14 @@ func (ab *ConstantArrProc) beforeArrive() {
 }
 
 // AfterArrive adds a callback to run immediately after the Arrival Process
-// creates a job. This callback is passed the ArrProc itself, the Job that was
-// created, and the interval that will elapse before the next arrival.
-func (ab *ConstantArrProc) AfterArrive(f func(ArrProc, *Job, int)) {
+// creates a job. This callback is passed the ArrProc itself, the Jobs that
+// were created, and the interval that will elapse before the next arrival.
+func (ab *ConstantArrProc) AfterArrive(f func(ArrProc, []*Job, int)) {
 	ab.cbAfterArrive = append(ab.cbAfterArrive, f)
 }
-func (ab *ConstantArrProc) afterArrive(j *Job, interval int) {
+func (ab *ConstantArrProc) afterArrive(jobs []*Job, interval int) {
 	for _, cb := range ab.cbAfterArrive {
-		cb(ab, j, interval)
+		cb(ab, jobs, interval)
 	}
 }
 
@@ -87,41 +87,41 @@ type PoissonArrProc struct {
 
 	// Callback lists
 	cbBeforeArrive []func(ap ArrProc)
-	cbAfterArrive  []func(ap ArrProc, j *Job, interval int)
+	cbAfterArrive  []func(ap ArrProc, jobs []*Job, interval int)
 }
 
 // Arrive generates a Job and returns the interval that will elapse before the
 // subsequent arrival. These arrival intervals are exponentially distributed.
 //
 // clock is the current simulation clock time.
-func (ap *PoissonArrProc) Arrive(clock int) (j *Job, interval int) {
+func (ap *PoissonArrProc) Arrive(clock int) (jobs []*Job, interval int) {
 	ap.beforeArrive()
-	j = NewJob(clock)
+	jobs = append(jobs, NewJob(clock))
 	interval = ap.pickInterval()
-	ap.afterArrive(j, interval)
+	ap.afterArrive(jobs, interval)
 	return
 }
 
 // BeforeArrive adds a callback to run immediately before the Arrival Process
 // creates a job. This callback is passed the ArrProc itself.
-func (ab *PoissonArrProc) BeforeArrive(f func(ArrProc)) {
-	ab.cbBeforeArrive = append(ab.cbBeforeArrive, f)
+func (ap *PoissonArrProc) BeforeArrive(f func(ArrProc)) {
+	ap.cbBeforeArrive = append(ap.cbBeforeArrive, f)
 }
-func (ab *PoissonArrProc) beforeArrive() {
-	for _, cb := range ab.cbBeforeArrive {
-		cb(ab)
+func (ap *PoissonArrProc) beforeArrive() {
+	for _, cb := range ap.cbBeforeArrive {
+		cb(ap)
 	}
 }
 
 // AfterArrive adds a callback to run immediately after the Arrival Process
-// creates a job. This callback is passed the ArrProc itself, the Job that was
-// created, and the interval that will elapse before the next arrival.
-func (ab *PoissonArrProc) AfterArrive(f func(ArrProc, *Job, int)) {
-	ab.cbAfterArrive = append(ab.cbAfterArrive, f)
+// creates a job. This callback is passed the ArrProc itself, the Jobs that
+// were created, and the interval that will elapse before the next arrival.
+func (ap *PoissonArrProc) AfterArrive(f func(ArrProc, []*Job, int)) {
+	ap.cbAfterArrive = append(ap.cbAfterArrive, f)
 }
-func (ab *PoissonArrProc) afterArrive(j *Job, interval int) {
-	for _, cb := range ab.cbAfterArrive {
-		cb(ab, j, interval)
+func (ap *PoissonArrProc) afterArrive(jobs []*Job, interval int) {
+	for _, cb := range ap.cbAfterArrive {
+		cb(ap, jobs, interval)
 	}
 }
 

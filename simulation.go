@@ -19,6 +19,7 @@ type Schedule struct {
 // Add puts a new event in the schedule.
 func (sch *Schedule) Add(newEv simEvent) {
 	var i int
+	D("Added event for time", newEv.T)
 
 	if len(sch.events) == 0 {
 		sch.events = append(sch.events, newEv)
@@ -128,12 +129,14 @@ func RunSimulation(sys System, maxTicks int) (finalTick int) {
 	}
 
 	// Make sure that newly arriving Jobs get assigned.
-	sys.ArrProc().AfterArrive(func(cbArrProc ArrProc, cbJob *Job, cbInterval int) {
-		sys.ArrBeh().Assign(cbJob)
+	sys.ArrProc().AfterArrive(func(cbArrProc ArrProc, cbJobs []*Job, cbInterval int) {
+		for _, j := range cbJobs {
+			sys.ArrBeh().Assign(j)
+		}
 	})
 
 	// Schedule arrival events, including the initial one.
-	cbAfterArrive := func(cbArrProc ArrProc, cbJob *Job, cbInterval int) {
+	cbAfterArrive := func(cbArrProc ArrProc, cbJobs []*Job, cbInterval int) {
 		eventCb := func(cbClock int) {
 			sys.ArrProc().Arrive(cbClock)
 		}
