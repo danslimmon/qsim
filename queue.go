@@ -25,6 +25,8 @@ type Queue struct {
 	cbAfterAppend  []func(q *Queue, j *Job)
 	cbBeforeShift  []func(q *Queue, j *Job)
 	cbAfterShift   []func(q *Queue, j *Job)
+	cbBeforeRemove []func(q *Queue, j *Job)
+	cbAfterRemove  []func(q *Queue, j *Job)
 }
 
 // Append adds a Job to the tail of the queue.
@@ -65,6 +67,29 @@ func (q *Queue) Shift() (j *Job, nrem int) {
 	q.Jobs = q.Jobs[1:]
 	q.afterShift(j)
 	return j, len(q.Jobs)
+}
+
+// Remove removes a particular Job (identified by JobId property) from the queue.
+//
+// It returns the Job that was removed, as well as the number of Jobs
+// still left in the queue after removing. When Remove is passed a Job that
+// is absent from the queue, its returned job will be nil. So an appropriate
+// use of Remove() looks like this:
+//
+//  j, nrem := q.Remove(j)
+//  if j != nil {
+//      // Do something with j
+//  }
+func (q *Queue) Remove(jToRemove *Job) (jRet *Job, nrem int) {
+	for i, j := range q.Jobs {
+		if j.JobId == jToRemove.JobId {
+			q.beforeRemove(jToRemove)
+			q.Jobs = append(q.Jobs[:i], q.Jobs[i+1:]...)
+			q.afterRemove(jToRemove)
+			return jToRemove, q.Length()
+		}
+	}
+	return nil, q.Length()
 }
 
 // BeforeAppend adds a callback to be run immediately before a Job is
@@ -123,6 +148,36 @@ func (q *Queue) AfterShift(f func(q *Queue, j *Job)) {
 }
 func (q *Queue) afterShift(j *Job) {
 	for _, cb := range q.cbAfterShift {
+		cb(q, j)
+	}
+}
+
+// BeforeRemove adds a callback to be run immediately before a Job is
+// removed from the queue (with Remove()).
+//
+// The callback will be passed the queue itself and the job that's about
+// to be removed. If Remove is called on an empty queue, this callback
+// will not run.
+func (q *Queue) BeforeRemove(f func(q *Queue, j *Job)) {
+	q.cbBeforeRemove = append(q.cbBeforeRemove, f)
+}
+func (q *Queue) beforeRemove(j *Job) {
+	for _, cb := range q.cbBeforeRemove {
+		cb(q, j)
+	}
+}
+
+// AfterRemove adds a callback to be run immediately after a Job is
+// removed from the queue (with Remove()).
+//
+// The callback will be passed the queue itself and the job that was
+// just shifted. If Remove is called on an empty queue, this callback
+// will not run.
+func (q *Queue) AfterRemove(f func(q *Queue, j *Job)) {
+	q.cbAfterRemove = append(q.cbAfterRemove, f)
+}
+func (q *Queue) afterRemove(j *Job) {
+	for _, cb := range q.cbAfterRemove {
 		cb(q, j)
 	}
 }

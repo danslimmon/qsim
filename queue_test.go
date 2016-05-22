@@ -74,6 +74,50 @@ func TestQueueShift(t *testing.T) {
 	}
 }
 
+// Tests the behavior of removing particular items from the queue.
+func TestQueueRemove(t *testing.T) {
+	t.Parallel()
+	var q *Queue
+	var j0, j1, j2, j *Job
+	var nrem int
+	q = NewQueue()
+
+	j0 = NewJob(0)
+	j0.IntAttrs["i"] = 0
+	q.Append(j0)
+
+	j1 = NewJob(0)
+	j1.IntAttrs["i"] = 1
+	q.Append(j1)
+
+	j, nrem = q.Remove(j1)
+	if j.IntAttrs["i"] != 1 {
+		t.Log("Incorrect job removed")
+		t.Fail()
+	}
+	if nrem != 1 {
+		t.Log("Expected the remaining number of queued jobs to equal 1")
+		t.Fail()
+	}
+
+	j, nrem = q.Remove(j0)
+	if j.IntAttrs["i"] != 0 {
+		t.Log("Incorrect job removed")
+		t.Fail()
+	}
+	if nrem != 0 {
+		t.Log("Expected the remaining number of queued jobs to equal 0")
+		t.Fail()
+	}
+
+	j2 = NewJob(0)
+	j, nrem = q.Remove(j2)
+	if j != nil {
+		t.Log("Calling Remove on a non-queued job should return j = nil")
+		t.Fail()
+	}
+}
+
 // Tests the BeforeAppend callback.
 func TestQueueBeforeAppend(t *testing.T) {
 	t.Parallel()
@@ -264,6 +308,158 @@ func TestQueueAfterShift(t *testing.T) {
 	}
 	if qLen != 0 {
 		t.Log("Expected AfterShift callback to set qLen=0")
+		t.Fail()
+	}
+}
+
+// Tests the BeforeRemove callback.
+func TestQueueBeforeRemove(t *testing.T) {
+	t.Parallel()
+	var q *Queue
+	var j0, j1, j2 *Job
+	q = NewQueue()
+
+	var counter int
+	var qLen int
+	cb := func(q *Queue, j *Job) {
+		if j != nil {
+			counter = j.IntAttrs["i"]
+		} else {
+			counter = -1
+		}
+		qLen = q.Length()
+	}
+	q.BeforeRemove(cb)
+
+	j0 = NewJob(0)
+	j0.IntAttrs["i"] = 0
+	q.Append(j0)
+	j1 = NewJob(0)
+	j1.IntAttrs["i"] = 1
+	q.Append(j1)
+
+	j2 = NewJob(0)
+	j2.IntAttrs["i"] = 1
+
+	// BeforeRemove should not run if the job is not present.
+	counter = -2
+	qLen = -2
+	q.Remove(j2)
+	if counter != -2 {
+		t.Log("Expected BeforeRemove not to run")
+		t.Fail()
+	}
+	if qLen != -2 {
+		t.Log("Expected BeforeRemove not to run")
+		t.Fail()
+	}
+
+	q.Remove(j1)
+	if counter != 1 {
+		t.Log("Expected BeforeRemove callback to set counter=1")
+		t.Fail()
+	}
+	if qLen != 2 {
+		t.Log("Expected BeforeRemove callback to set qLen=2")
+		t.Fail()
+	}
+
+	q.Remove(j0)
+	if counter != 0 {
+		t.Log("Expected BeforeRemove callback to set counter=0")
+		t.Fail()
+	}
+	if qLen != 1 {
+		t.Log("Expected BeforeRemove callback to set qLen=1")
+		t.Fail()
+	}
+
+	// This job is no longer present, so BeforeRemove shouldn't run.
+	counter = -2
+	qLen = -2
+	q.Remove(j0)
+	if counter != -2 {
+		t.Log("Expected BeforeRemove not to run")
+		t.Fail()
+	}
+	if qLen != -2 {
+		t.Log("Expected BeforeRemove not to run")
+		t.Fail()
+	}
+}
+
+// Tests the AfterRemove callback.
+func TestQueueAfterRemove(t *testing.T) {
+	t.Parallel()
+	var q *Queue
+	var j0, j1, j2 *Job
+	q = NewQueue()
+
+	var counter int
+	var qLen int
+	cb := func(q *Queue, j *Job) {
+		if j != nil {
+			counter = j.IntAttrs["i"]
+		} else {
+			counter = -1
+		}
+		qLen = q.Length()
+	}
+	q.AfterRemove(cb)
+
+	j0 = NewJob(0)
+	j0.IntAttrs["i"] = 0
+	q.Append(j0)
+	j1 = NewJob(0)
+	j1.IntAttrs["i"] = 1
+	q.Append(j1)
+
+	j2 = NewJob(0)
+	j2.IntAttrs["i"] = 2
+
+	// AfterRemove() shouldn't run on an absent job
+	counter = -2
+	qLen = -2
+	q.Remove(j2)
+	if counter != -2 {
+		t.Log("Expected AfterRemove callback not to run")
+		t.Fail()
+	}
+	if qLen != -2 {
+		t.Log("Expected AfterRemove callback not to run")
+		t.Fail()
+	}
+
+	q.Remove(j1)
+	if counter != 1 {
+		t.Log("Expected AfterRemove callback to set counter=1")
+		t.Fail()
+	}
+	if qLen != 1 {
+		t.Log("Expected AfterRemove callback to set qLen=1")
+		t.Fail()
+	}
+
+	q.Remove(j0)
+	if counter != 0 {
+		t.Log("Expected AfterRemove callback to set counter=0")
+		t.Fail()
+	}
+	if qLen != 0 {
+		t.Log("Expected AfterRemove callback to set qLen=0")
+		t.Fail()
+	}
+
+	// j0 is no longer present, so AfterRemove callback shouldn't run.
+	counter = -2
+	qLen = -2
+	q.Remove(j0)
+	if counter != -2 {
+		t.Log("Expected AfterRemove callback to set counter=-2")
+		t.Fail()
+	}
+	if qLen != -2 {
+		t.Log("Expected AfterRemove callback to set qLen=-2")
 		t.Fail()
 	}
 }
