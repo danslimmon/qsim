@@ -173,10 +173,9 @@ func (sys *BloodBankSystem) Processors() []*qsim.Processor {
 // In this example, we use BeforeEvents to send any jobs older than the
 // maximum age to the trash.
 func (sys *BloodBankSystem) BeforeEvents(clock int) {
-	for i, j := range sys.queue.Jobs {
+	for _, j := range sys.queue.Jobs {
 		if clock-j.ArrTime >= sys.MaxJobAge {
 			sys.queue.Remove(j)
-			sys.queue.Jobs = append(sys.queue.Jobs[:i], sys.queue.Jobs[i+1:]...)
 			sys.trashProcessor.Start(j)
 		}
 	}
@@ -202,21 +201,6 @@ func (sys *BloodBankSystem) AfterEvents(clock int) {
 }
 
 func applyBloodBankDiscipline(sys *BloodBankSystem, queue *qsim.Queue, trashProcessor, transfusionProcessor *qsim.Processor) {
-	/*
-		// Assigns a random job from the queue to the processor
-		assigner := func(cbProc *qsim.Processor, cbJob *qsim.Job) {
-			var i int
-			var j *qsim.Job
-			if queue.Length() == 0 {
-				return
-			}
-			i = rand.Intn(queue.Length())
-			j = queue.Jobs[i]
-			queue.Jobs = append(queue.Jobs[:i], queue.Jobs[i+1:]...)
-			cbProc.Start(j)
-		}
-	*/
-
 	// Assigns the youngest unit to the processor
 	assigner := func(cbProc *qsim.Processor, cbJob *qsim.Job) {
 		var i, iYoungest int
@@ -233,7 +217,7 @@ func applyBloodBankDiscipline(sys *BloodBankSystem, queue *qsim.Queue, trashProc
 			}
 		}
 		j = queue.Jobs[iYoungest]
-		queue.Jobs = append(queue.Jobs[:iYoungest], queue.Jobs[iYoungest+1:]...)
+		queue.Remove(j)
 		cbProc.Start(j)
 	}
 
