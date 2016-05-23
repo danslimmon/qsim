@@ -90,7 +90,7 @@ func TestConstantArrProcAfterArrive(t *testing.T) {
 	}
 }
 
-// Tests a dead-simple Arrival Process
+// Tests a Poisson Arrival Process
 func TestPoissonArrProc(t *testing.T) {
 	t.Parallel()
 	var ap ArrProc
