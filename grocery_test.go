@@ -58,7 +58,7 @@ func (sys *GrocerySystem) Init() {
 	// When customers are ready to check out, they get in the shortest
 	// queue. Unless there's an empty register, in which case they go
 	// right ahead and start checking out.
-	sys.arrBeh = NewShortestQueueArrBeh(sys.queues, sys.processors)
+	sys.arrBeh = NewShortestQueueArrBeh(sys.queues, sys.processors, sys.arrProc)
 	// Customers stay in the queue they originally joined, and each queue
 	// leads to exactly one register.
 	NewOneToOneFIFODiscipline(sys.queues, sys.processors)

@@ -23,7 +23,7 @@ func TestShortestQueueArrBeh(t *testing.T) {
 	for i = 0; i < 3; i++ {
 		procs[i] = NewProcessor(simplePtg)
 	}
-	ab = NewShortestQueueArrBeh(queues, procs)
+	ab = NewShortestQueueArrBeh(queues, procs, NewConstantArrProc(5))
 
 	// Test that idle Processors get assigned the next Job immediately
 	for i = 0; i < 3; i++ {
@@ -132,7 +132,7 @@ func TestShortestQueueArrBehBeforeAssign(t *testing.T) {
 	for i = 0; i < 3; i++ {
 		procs[i] = NewProcessor(simplePtg)
 	}
-	ab = NewShortestQueueArrBeh(queues, procs)
+	ab = NewShortestQueueArrBeh(queues, procs, NewConstantArrProc(5))
 
 	cbBeforeAssign := func(cbArrBeh ArrBeh, cbJob *Job) *Assignment {
 		receivedArrBeh = cbArrBeh
@@ -173,7 +173,7 @@ func TestShortestQueueArrBehBeforeAssignWithOverride(t *testing.T) {
 		procs[i] = NewProcessor(simplePtg)
 		procs[i].ProcessorId = i
 	}
-	ab = NewShortestQueueArrBeh(queues, procs)
+	ab = NewShortestQueueArrBeh(queues, procs, NewConstantArrProc(5))
 
 	// We create multiple BeforeAssign callbacks to test that the last one to
 	// return a non-nil Assignment pointer takes precedence.
@@ -222,7 +222,7 @@ func TestShortestQueueArrBehAfterAssign(t *testing.T) {
 	for i = 0; i < 3; i++ {
 		procs[i] = NewProcessor(simplePtg)
 	}
-	ab = NewShortestQueueArrBeh(queues, procs)
+	ab = NewShortestQueueArrBeh(queues, procs, NewConstantArrProc(5))
 
 	cbAfterAssign := func(cbArrBeh ArrBeh, cbJob *Job, cbAssignment Assignment) {
 		receivedArrBeh = cbArrBeh

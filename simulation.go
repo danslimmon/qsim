@@ -128,13 +128,6 @@ func RunSimulation(sys System, maxTicks int) (finalTick int) {
 		p.AfterStart(cbAfterStart)
 	}
 
-	// Make sure that newly arriving Jobs get assigned.
-	sys.ArrProc().AfterArrive(func(cbArrProc ArrProc, cbJobs []*Job, cbInterval int) {
-		for _, j := range cbJobs {
-			sys.ArrBeh().Assign(j)
-		}
-	})
-
 	// Schedule arrival events, including the initial one.
 	cbAfterArrive := func(cbArrProc ArrProc, cbJobs []*Job, cbInterval int) {
 		eventCb := func(cbClock int) {

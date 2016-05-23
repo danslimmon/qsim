@@ -141,7 +141,7 @@ func (ab *ShortestQueueArrBeh) afterAssign(j *Job, ass Assignment) {
 
 // NewShortestQueueArrBeh initializes a ShortestQueueArrBeh with the given Queues &
 // Processors.
-func NewShortestQueueArrBeh(queues []*Queue, procs []*Processor) ArrBeh {
+func NewShortestQueueArrBeh(queues []*Queue, procs []*Processor, ap ArrProc) ArrBeh {
 	var ab *ShortestQueueArrBeh
 	var p *Processor
 
@@ -165,6 +165,13 @@ func NewShortestQueueArrBeh(queues []*Queue, procs []*Processor) ArrBeh {
 		p.AfterStart(afterStart)
 		p.AfterFinish(afterFinish)
 	}
+
+	// Make sure that newly arriving Jobs get assigned.
+	ap.AfterArrive(func(cbArrProc ArrProc, cbJobs []*Job, cbInterval int) {
+		for _, j := range cbJobs {
+			ab.Assign(j)
+		}
+	})
 
 	return ab
 }
