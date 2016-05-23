@@ -176,6 +176,99 @@ func NewShortestQueueArrBeh(queues []*Queue, procs []*Processor, ap ArrProc) Arr
 	return ab
 }
 
+// AlwaysQueueArrBeh always puts incoming jobs in the given queue. Processors
+// don't even enter into it.
+type AlwaysQueueArrBeh struct {
+	Q *Queue
+
+	// Callback lists
+	cbBeforeAssign []func(ab ArrBeh, j *Job) *Assignment
+	cbAfterAssign  []func(ab ArrBeh, j *Job, ass Assignment)
+}
+
+// Assign takes the given Job and assigns it to the queue.
+func (ab *AlwaysQueueArrBeh) Assign(j *Job) Assignment {
+	// Allow beforeAssign callback to override the assignment logic
+	assPtr := ab.beforeAssign(j)
+	if assPtr != nil {
+		ab.assign(j, *assPtr)
+		ab.afterAssign(j, *assPtr)
+		return *assPtr
+	}
+
+	ass := Assignment{Type: "Queue", Queue: ab.Q}
+	ab.assign(j, ass)
+	ab.afterAssign(j, ass)
+	return ass
+}
+
+// assign does the appropriate thing with the Job given an Assignment.
+func (ab *AlwaysQueueArrBeh) assign(j *Job, ass Assignment) {
+	switch ass.Type {
+	case "Processor":
+		panic("AlwaysQueueArrBeh does not support assignment to Processors")
+	case "Queue":
+		ass.Queue.Append(j)
+		D("Job", j.JobId, "arrived and was assigned to Queue", ass.Queue)
+	default:
+		panic("Tried to process Assignment with unknown Type '" + ass.Type + "'")
+	}
+}
+
+// BeforeAssign adds a callback to run immediately before the Arrival Behavior
+// assigns a job to a Queue or Processor. This callback is passed the ArrBeh
+// itself as well as the Job that's about to be assigned.
+//
+// The callback may return an Assignment pointer. If it does so, this Assignment
+// will override the ArrBeh's assignment logic. Otherwise, if the callback
+// returns <nil>, the assignment will proceed normally.
+//
+// If there are multiple BeforeAssign callbacks that return non-nil Assignment
+// pointers, the callback most recently created wins.
+func (ab *AlwaysQueueArrBeh) BeforeAssign(f func(ArrBeh, *Job) *Assignment) {
+	ab.cbBeforeAssign = append(ab.cbBeforeAssign, f)
+}
+func (ab *AlwaysQueueArrBeh) beforeAssign(j *Job) *Assignment {
+	var assPtr, newAssPtr *Assignment
+	for _, cb := range ab.cbBeforeAssign {
+		newAssPtr = cb(ab, j)
+		if newAssPtr != nil {
+			assPtr = newAssPtr
+		}
+	}
+	return assPtr
+}
+
+// AfterAssign adds a callback to run immediately after the Arrival Behavior
+// assigns a job to a Queue or Processor. This callback is passed the ArrBeh
+// itself, the Job that's about to be assigned, and an Assignment struct
+// indicating where the Job was placed.
+func (ab *AlwaysQueueArrBeh) AfterAssign(f func(ArrBeh, *Job, Assignment)) {
+	ab.cbAfterAssign = append(ab.cbAfterAssign, f)
+}
+func (ab *AlwaysQueueArrBeh) afterAssign(j *Job, ass Assignment) {
+	for _, cb := range ab.cbAfterAssign {
+		cb(ab, j, ass)
+	}
+}
+
+// NewAlwaysQueueArrBeh initializes a AlwaysQueueArrBeh with the given Queue.
+func NewAlwaysQueueArrBeh(q *Queue, ap ArrProc) ArrBeh {
+	var ab *AlwaysQueueArrBeh
+
+	ab = new(AlwaysQueueArrBeh)
+	ab.Q = q
+
+	// Make sure that newly arriving Jobs get assigned.
+	ap.AfterArrive(func(cbArrProc ArrProc, cbJobs []*Job, cbInterval int) {
+		for _, j := range cbJobs {
+			ab.Assign(j)
+		}
+	})
+
+	return ab
+}
+
 // An Assignment indicates where a Job has been assigned by an Arrival Behavior.
 //
 // The string Type will be either "Processor" or "Queue", and the corresponding
