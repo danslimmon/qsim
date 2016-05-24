@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"sort"
 	"strconv"
 	"time"
 
@@ -88,6 +89,8 @@ type BloodBankSystem struct {
 	NumTossed, NumUsed int
 	// The number of transfusions that had to be aborted due to a blood shortfall
 	NumAborted int
+	// The list of all ages of units used in transfusions (in ticks)
+	UnitAges []int
 	// For each age in Thresholds, the number of samples used that were older than
 	// that age.
 	AgeCounts []int
@@ -192,6 +195,7 @@ func (sys *BloodBankSystem) AfterEvents(clock int) {
 	}
 	if sys.statsStarted {
 		for _, j := range sys.unitsUsed {
+			sys.UnitAges = append(sys.UnitAges, clock-j.ArrTime)
 			for i, thresh := range sys.Thresholds {
 				if clock-j.ArrTime > thresh {
 					sys.AgeCounts[i]++
@@ -253,6 +257,7 @@ func applyBloodBankDiscipline(sys *BloodBankSystem, queue *qsim.Queue, trashProc
 // - Number of units used in transfusions
 // - Number of units thrown out
 // - Number of transfusions aborted due to lack of blood
+// - 90th percentile age of units used in transfusions
 // - A value for each member of `thresholds` (see below) indicating the number of units
 //   used in transfusions over that age in days
 func SimBloodBank() {
@@ -263,11 +268,11 @@ func SimBloodBank() {
 	type simResult struct {
 		Done                           bool
 		NumTossed, NumUsed, NumAborted int
+		UnitAges                       []int
 		AgeCounts                      []int
 	}
 	var nTossed, nUsed, nAborted int
-	var ageCounts []int
-	var thresholds []int
+	var unitAges, ageCounts, thresholds []int
 	var ch chan simResult
 	var cpu, nCpu, routinesDone int
 	var err error
@@ -286,6 +291,7 @@ func SimBloodBank() {
 	statsStart = 365 * 1440
 
 	thresholds = []int{5 * 1440, 10 * 1440, 15 * 1440, 20 * 1440, 25 * 1440, 30 * 1440}
+	unitAges = make([]int, 0)
 	ageCounts = make([]int, len(thresholds))
 
 	maxDrawRate64, err = strconv.ParseInt(os.Args[1], 10, 0)
@@ -326,6 +332,7 @@ func SimBloodBank() {
 					rslt.NumTossed += sys.NumTossed
 					rslt.NumUsed += sys.NumUsed
 					rslt.NumAborted += sys.NumAborted
+					rslt.UnitAges = append(rslt.UnitAges, sys.UnitAges...)
 					var k int
 					for k, _ = range rslt.AgeCounts {
 						rslt.AgeCounts[k] = sys.AgeCounts[k]
@@ -347,17 +354,23 @@ func SimBloodBank() {
 		nTossed += rslt.NumTossed
 		nUsed += rslt.NumUsed
 		nAborted += rslt.NumAborted
+		unitAges = append(unitAges, rslt.UnitAges...)
 		for i, _ := range thresholds {
 			ageCounts[i] += rslt.AgeCounts[i]
 		}
 	}
 
-	fmt.Printf("%d,%d,%d,%d,%d",
+	sort.Ints(unitAges)
+	ind := int(9 * len(unitAges) / 10)
+	p90UnitAge := unitAges[ind]
+
+	fmt.Printf("%d,%d,%d,%d,%d,%d",
 		(simTicks-statsStart)*nSims,
 		nSims,
 		nUsed,
 		nTossed,
 		nAborted,
+		p90UnitAge,
 	)
 	for i, _ := range thresholds {
 		fmt.Printf(",%d", ageCounts[i])

@@ -16,6 +16,7 @@ type bloodBankResult struct {
 	UnitsUsed           int
 	UnitsTossed         int
 	TransfusionsAborted int
+	P90UnitAge          int
 	AgeCounts           []int
 }
 
@@ -70,7 +71,11 @@ func testBloodBank(drawRate, maxOccupancy int, transfusionRate float64) (bloodBa
 	if err != nil {
 		return bloodBankResult{}, err
 	}
-	for _, ageCountStr := range pieces[5:] {
+	rslt.P90UnitAge, err = strconv.Atoi(pieces[5])
+	if err != nil {
+		return bloodBankResult{}, err
+	}
+	for _, ageCountStr := range pieces[6:] {
 		ageCount, err := strconv.Atoi(ageCountStr)
 		if err != nil {
 			return bloodBankResult{}, err
