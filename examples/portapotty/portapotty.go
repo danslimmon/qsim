@@ -96,7 +96,7 @@ func (sys *PortaPottySystem) Init() {
 	// When customers arrive, they pick the shortest queue. If all the queues
 	// are too long, the queue MaxLength parameter means they go do something
 	// else.
-	sys.arrBeh = qsim.NewShortestQueueArrBeh(sys.queues, sys.processors)
+	sys.arrBeh = qsim.NewShortestQueueArrBeh(sys.queues, sys.processors, sys.arrProc)
 	// This callback overrides the default arrival behavior for people that
 	// are using our clever strategy.
 	sys.arrBeh.BeforeAssign(func(ab qsim.ArrBeh, j *qsim.Job) *qsim.Assignment {
@@ -141,6 +141,8 @@ func (sys *PortaPottySystem) Occupancy() (occ int) {
 func (sys *PortaPottySystem) Processors() []*qsim.Processor {
 	return sys.processors
 }
+
+func (sys *PortaPottySystem) BeforeFirstTick() {}
 
 // BeforeEvents runs at every tick when a simulation event happens (a
 // Job arrives in the system, or a Job finishes processing and leaves

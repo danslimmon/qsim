@@ -105,7 +105,9 @@ func (sys *BloodBankSystem) Init() {
 	var procMean float64
 
 	rand.Seed(time.Now().UnixNano())
-	procMean = sys.MeanTransfusionRate
+	// MeanTransfusionRate is in units/day, so the mean time between transfusions is
+	// the reciprocal of that, expressed in ticks/unit
+	procMean = 1440.0 / sys.MeanTransfusionRate
 	sys.MaxJobAge = 35 * 1440
 
 	sys.AgeCounts = make([]int, len(sys.Thresholds))
@@ -113,7 +115,7 @@ func (sys *BloodBankSystem) Init() {
 
 	transfusionIntervalGenerator := func(j *qsim.Job) int {
 		var r float64
-		r = rand.ExpFloat64() * procMean * 1440.0
+		r = rand.ExpFloat64() * procMean
 		return int(r)
 	}
 
@@ -126,28 +128,23 @@ func (sys *BloodBankSystem) Init() {
 	sys.transfusionProcessor = qsim.NewProcessor(transfusionIntervalGenerator)
 
 	// Processor callbacks to keep track of stats.
-	sys.transfusionProcessor.AfterFinish(func(p *qsim.Processor, j *qsim.Job) {
-		if sys.statsStarted {
+	sys.transfusionProcessor.AfterStart(func(p *qsim.Processor, j *qsim.Job, procTime int) {
+		if sys.statsStarted && j != nil && j.ArrTime != -1 {
 			sys.NumUsed++
 			sys.unitsUsed = append(sys.unitsUsed, j)
 		}
 	})
 	sys.trashProcessor.AfterFinish(func(p *qsim.Processor, j *qsim.Job) {
-		if sys.statsStarted {
+		if sys.statsStarted && j != nil {
 			sys.NumTossed++
 		}
 	})
 
 	sys.arrProc = &BloodBankArrProc{Sys: sys}
-
-	// We _always_ want to queue, and there's only one queue, so this is a
-	// degenerate case of ShortestQueueArrBeh.
-	sys.arrBeh = qsim.NewShortestQueueArrBeh(
-		[]*qsim.Queue{sys.queue},
-		[]*qsim.Processor{sys.transfusionProcessor},
-	)
+	sys.arrBeh = qsim.NewAlwaysQueueArrBeh(sys.queue, sys.arrProc)
 
 	applyBloodBankDiscipline(sys, sys.queue, sys.trashProcessor, sys.transfusionProcessor)
+	sys.transfusionProcessor.Start(nil)
 }
 
 // ArrProc returns the system's arrival process.
@@ -163,6 +160,11 @@ func (sys *BloodBankSystem) ArrBeh() qsim.ArrBeh {
 // Processors returns the list of Processors in the system.
 func (sys *BloodBankSystem) Processors() []*qsim.Processor {
 	return []*qsim.Processor{sys.transfusionProcessor, sys.trashProcessor}
+}
+
+// BeforeRun runs right before the clock starts.
+func (sys *BloodBankSystem) BeforeFirstTick() {
+	sys.transfusionProcessor.Start(qsim.NewJob(0))
 }
 
 // BeforeEvents runs at every tick when a simulation event happens (a
@@ -206,9 +208,13 @@ func applyBloodBankDiscipline(sys *BloodBankSystem, queue *qsim.Queue, trashProc
 		var i, iYoungest int
 		var j *qsim.Job
 		if queue.Length() == 0 {
+			qsim.D("Aborted after Job", cbJob)
 			if sys.statsStarted {
 				sys.NumAborted++
 			}
+			// Give the processor a dummy job until the next transfusion
+			j = qsim.NewJob(-1)
+			cbProc.Start(j)
 			return
 		}
 		for i, j = range queue.Jobs {
@@ -219,6 +225,7 @@ func applyBloodBankDiscipline(sys *BloodBankSystem, queue *qsim.Queue, trashProc
 		j = queue.Jobs[iYoungest]
 		queue.Remove(j)
 		cbProc.Start(j)
+		qsim.D("Started Job", j)
 	}
 
 	transfusionProcessor.AfterFinish(assigner)
@@ -234,9 +241,10 @@ func applyBloodBankDiscipline(sys *BloodBankSystem, queue *qsim.Queue, trashProc
 //
 // Arguments, in order:
 //
-// - Daily Maximum Draw Rate (in units/day)
-// - Maximum Bank Occupancy (in units)
-// - Daily Mean Transfusion Rate (in units/day)
+// - Daily Maximum Draw Rate (in units/day, as an int)
+// - Maximum Bank Occupancy (in units, as an int)
+// - Daily Mean Transfusion Rate (in units/day, as a float)
+// - (optional) The word "test", indicating that only 1 sim should be run.
 //
 // We output a CSV row with the following values, in order:
 //
@@ -264,11 +272,16 @@ func SimBloodBank() {
 	var cpu, nCpu, routinesDone int
 	var err error
 
-	nCpu = 1
-	nSims = 1
+	if len(os.Args) > 4 && os.Args[4] == "test" {
+		nCpu = 1
+		nSims = 1
+		simTicks = 2 * 365 * 1440
+	} else {
+		nCpu = 8
+		nSims = 64
+		simTicks = 10 * 365 * 1440
+	}
 	simsPerCpu = nSims / nCpu
-	// Run each simulation for 10 years
-	simTicks = 10 * 365 * 1440
 	// Don't start collecting stats until a year goes by
 	statsStart = 365 * 1440
 
@@ -353,5 +366,6 @@ func SimBloodBank() {
 }
 
 func main() {
+	qsim.Debug = false
 	SimBloodBank()
 }

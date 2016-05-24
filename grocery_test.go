@@ -74,6 +74,8 @@ func (sys *GrocerySystem) ArrBeh() ArrBeh {
 	return sys.arrBeh
 }
 
+func (sys *GrocerySystem) BeforeFirstTick() {}
+
 // BeforeEvents runs at every tick when a simulation event happens (a
 // Job arrives in the system, or a Job finishes processing and leaves
 // the system). BeforeEvents is called after all the events for the tick

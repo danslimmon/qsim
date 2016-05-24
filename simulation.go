@@ -83,6 +83,8 @@ type System interface {
 	ArrProc() ArrProc
 	// ArrBeh returns the system's arrival behavior.
 	ArrBeh() ArrBeh
+	// BeforeTick is called right before the clock starts on a simulation.
+	BeforeFirstTick()
 	// BeforeEvents runs at every tick when a simulation event happens (a
 	// Job arrives in the system, or a Job finishes processing and leaves
 	// the system). BeforeEvents is called after all the events for the tick
@@ -139,6 +141,7 @@ func RunSimulation(sys System, maxTicks int) (finalTick int) {
 	sch.Add(simEvent{0, func(cbClock int) { sys.ArrProc().Arrive(cbClock) }})
 
 	// Run the simulation.
+	sys.BeforeFirstTick()
 	for clock = 0; clock <= maxTicks; {
 		events, clock = sch.NextTick()
 		D()

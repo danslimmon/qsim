@@ -26,5 +26,5 @@ _testmain.go
 *.exe
 *.test
 *.prof
-examples/portapotty
-examples/bloodbank
+examples/portapotty/portapotty
+examples/bloodbank/bloodbank
