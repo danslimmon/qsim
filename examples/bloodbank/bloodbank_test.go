@@ -111,6 +111,14 @@ func TestBloodBankLowDrawRate(t *testing.T) {
 		t.Logf("Expected zero units older than the middle threshold; got %d", rslt.UnitsTossed)
 		t.FailNow()
 	}
+
+	transfusionAttempts := rslt.TransfusionsAborted + rslt.UnitsUsed
+	expAttempts := float64(rslt.Ticks) * transfusionRate
+	if 0.9*float64(transfusionAttempts) > expAttempts || float64(transfusionAttempts) < 0.9*expAttempts/1440.0 {
+		t.Logf("Expected total transfusion attempts to be in line with transfusion rate; got %d and expected ~%0.2f",
+			transfusionAttempts, expAttempts)
+		t.FailNow()
+	}
 }
 
 // Tests the limiting case where our maximum daily draw rate is very high.
@@ -143,6 +151,15 @@ func TestBloodBankHighDrawRate(t *testing.T) {
 	olderThanMiddle := rslt.AgeCounts[len(rslt.AgeCounts)/2]
 	if olderThanMiddle != 0 {
 		t.Logf("Expected zero units older than the middle threshold; got %d", rslt.UnitsTossed)
+		t.FailNow()
+	}
+
+	transfusionAttempts := rslt.TransfusionsAborted + rslt.UnitsUsed
+	expAttempts := float64(rslt.Ticks) * transfusionRate / 1440.0
+	// Tolerance is pretty loose because we don't get to pick very many random numbers in this sim.
+	if 0.5*float64(transfusionAttempts) > expAttempts || float64(transfusionAttempts) < 0.5*expAttempts {
+		t.Logf("Expected total transfusion attempts to be in line with transfusion rate; got %d and expected ~%0.2f",
+			transfusionAttempts, expAttempts)
 		t.FailNow()
 	}
 }
