@@ -282,9 +282,9 @@ func SimBloodBank() {
 		nSims = 1
 		simTicks = 2 * 365 * 1440
 	} else {
-		nCpu = 8
+		nCpu = 16
 		nSims = 64
-		simTicks = 10 * 365 * 1440
+		simTicks = 40 * 365 * 1440
 	}
 	simsPerCpu = nSims / nCpu
 	// Don't start collecting stats until a year goes by
